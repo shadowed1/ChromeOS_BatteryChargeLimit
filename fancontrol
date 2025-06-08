@@ -105,7 +105,7 @@ if [ "$STEP_DOWN" != "$DEFAULT_STEP_DOWN" ]; then
 
 # === Fan logic with hysteresis ===
 cleanup() {
-    echo "${YELLOW} $(date '+%Y-%m-%d %H:%M:%S') - Restoring automatic fan control..." | tee -a "$LOG_FILE $RESET"
+    echo "${YELLOW} $(date '+%Y-%m-%d %H:%M:%S') - Restoring automatic fan control..." | tee -a "$LOG_FILE ${RESET}"
     sudo ectool autofanctrl
     rm -f "$RUN_FLAG" "$PID_FILE"
     exit 0

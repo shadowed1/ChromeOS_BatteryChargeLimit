@@ -105,6 +105,114 @@ if [ "$STEP_DOWN" != "$DEFAULT_STEP_DOWN" ]; then
 
 # === Fan logic with hysteresis ===
 cleanup() {
+    echo "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') - Restoring automatic fan control...${RESET}" | tee -a "$LOG_FILE"
+
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+MAGENTA=$(tput setaf 5)
+CYAN=$(tput setaf 6)
+BOLD=$(tput bold)
+RESET=$(tput sgr0)
+INSTALL_DIR_FILE=/usr/local/bin/ChromeOS_PowerControl.install_dir
+if [ -f "$INSTALL_DIR_FILE" ]; then
+    INSTALL_DIR=$(cat "$INSTALL_DIR_FILE")
+else
+    INSTALL_DIR="$INSTALL_DIR"
+fi
+
+INSTALL_DIR="${INSTALL_DIR%/}"
+CONFIG_FILE="$INSTALL_DIR/config.sh"
+ZONE_PATH="/sys/class/thermal/thermal_zone0/temp"
+RUN_FLAG="$INSTALL_DIR/.fan_curve_running"
+PID_FILE="$INSTALL_DIR/.fan_curve_pid"
+LOG_FILE="/var/log/fancontrol.log"
+MONITOR_PID_FILE="$INSTALL_DIR/.fancontrol_tail_fan_monitor.pid"
+
+DEFAULT_FAN_MIN_TEMP=48
+DEFAULT_FAN_MAX_TEMP=81
+DEFAULT_MIN_FAN=0
+DEFAULT_MAX_FAN=100  
+DEFAULT_SLEEP_INTERVAL=3
+DEFAULT_STEP_UP=20
+DEFAULT_STEP_DOWN=1
+
+SLEEP_INTERVAL=$DEFAULT_SLEEP_INTERVAL
+STEP_UP=$DEFAULT_STEP_UP
+STEP_DOWN=$DEFAULT_STEP_DOWN
+load_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+    fi
+    validate_config
+}
+
+validate_config() {
+    if [[ -z "$FAN_MAX" || ! "$FAN_MAX" =~ ^[0-9]+$ ]]; then
+        FAN_MAX=$DEFAULT_FAN_MAX
+    fi
+    if [[ -z "$FAN_MIN" || ! "$FAN_MIN" =~ ^[0-9]+$ ]]; then
+        FAN_MIN=$DEFAULT_FAN_MIN
+    fi
+    if (( FAN_MIN >= FAN_MAX )); then
+        FAN_MIN=$DEFAULT_FAN_MIN
+        FAN_MAX=$DEFAULT_FAN_MAX
+    fi
+
+    if [[ -z "$FAN_MAX_TEMP" || ! "$FAN_MAX_TEMP" =~ ^[0-9]+$ ]]; then
+        FAN_MAX_TEMP=$DEFAULT_FAN_MAX_TEMP
+    fi
+    if [[ -z "$FAN_MIN_TEMP" || ! "$FAN_MIN_TEMP" =~ ^[0-9]+$ ]]; then
+        FAN_MIN_TEMP=$DEFAULT_FAN_MIN_TEMP
+    fi
+    if (( FAN_MIN_TEMP >= FAN_MAX_TEMP )); then
+        FAN_MIN_TEMP=$DEFAULT_FAN_MIN_TEMP
+        FAN_MAX_TEMP=$DEFAULT_FAN_MAX_TEMP
+    fi
+
+    if [[ -z "$STEP_UP" || ! "$STEP_UP" =~ ^[0-9]+$ ]]; then
+        STEP_UP=$DEFAULT_STEP_UP
+    fi
+    if [[ -z "$STEP_DOWN" || ! "$STEP_DOWN" =~ ^[0-9]+$ ]]; then
+        STEP_DOWN=$DEFAULT_STEP_DOWN
+    fi
+    if [[ -z "$SLEEP_INTERVAL" || ! "$SLEEP_INTERVAL" =~ ^[0-9]+$ ]]; then
+        SLEEP_INTERVAL=$DEFAULT_SLEEP_INTERVAL
+    fi
+}
+
+save_config() {
+
+if [ "$FAN_MAX_TEMP" != "$DEFAULT_FAN_MAX_TEMP" ]; then
+        sed -i "s/^FAN_MAX_TEMP=.*/FAN_MAX_TEMP=$FAN_MAX_TEMP/" "$CONFIG_FILE" || echo "FAN_MAX_TEMP=$FAN_MAX_TEMP" >> "$CONFIG_FILE"
+    fi
+    if [ "$FAN_MIN_TEMP" != "$DEFAULT_FAN_MIN_TEMP" ]; then
+        sed -i "s/^FAN_MIN_TEMP=.*/FAN_MIN_TEMP=$FAN_MIN_TEMP/" "$CONFIG_FILE" || echo "FAN_MIN_TEMP=$FAN_MIN_TEMP" >> "$CONFIG_FILE"
+    fi
+
+if [ "$FAN_MAX" != "$DEFAULT_FAN_MAX" ]; then
+        sed -i "s/^FAN_MAX=.*/FAN_MAX=$FAN_MAX/" "$CONFIG_FILE" || echo "FAN_MAX=$FAN_MAX" >> "$CONFIG_FILE"
+    fi
+    if [ "$FAN_MIN" != "$DEFAULT_FAN_MIN" ]; then
+        sed -i "s/^FAN_MIN=.*/FAN_MIN=$FAN_MIN/" "$CONFIG_FILE" || echo "FAN_MIN=$FAN_MIN" >> "$CONFIG_FILE"
+    fi
+
+if [ "$SLEEP_INTERVAL" != "$DEFAULT_SLEEP_INTERVAL" ]; then
+        sed -i "s/^SLEEP_INTERVAL=.*/SLEEP_INTERVAL=$SLEEP_INTERVAL/" "$CONFIG_FILE" || echo "SLEEP_INTERVAL=$SLEEP_INTERVAL" >> "$CONFIG_FILE"
+    fi
+    if [ "$STEP_UP" != "$DEFAULT_STEP_UP" ]; then
+        sed -i "s/^STEP_UP=.*/STEP_UP=$STEP_UP/" "$CONFIG_FILE" || echo "STEP_UP=$STEP_UP" >> "$CONFIG_FILE"
+    fi
+
+if [ "$STEP_DOWN" != "$DEFAULT_STEP_DOWN" ]; then
+        sed -i "s/^STEP_DOWN=.*/STEP_DOWN=$STEP_DOWN/" "$CONFIG_FILE" || echo "STEP_DOWN=$STEP_DOWN" >> "$CONFIG_FILE"
+    fi
+
+}
+
+# === Fan logic with hysteresis ===
+cleanup() {
     echo "${YELLOW} $(date '+%Y-%m-%d %H:%M:%S') - Restoring automatic fan control..." | tee -a "$LOG_FILE ${RESET}"
     sudo ectool autofanctrl
     rm -f "$RUN_FLAG" "$PID_FILE"
@@ -113,14 +221,14 @@ cleanup() {
 
 run_loop() {
     sudo ectool autofanctrl
-    echo "${GREEN} $(date '+%Y-%m-%d %H:%M:%S') - Fan curve started. Press Ctrl+C to stop." | tee -a "$LOG_FILE ${RESET}"
+    echo "${GREEN} $(date '+%Y-%m-%d %H:%M:%S') - FanControl started.${RESET}" | tee -a "$LOG_FILE"
 
     local last_duty=-1
     local last_reload_time=0
 
     while [ -f "$RUN_FLAG" ]; do
         if [ ! -f "$ZONE_PATH" ]; then
-            echo "${RED} $(date '+%Y-%m-%d %H:%M:%S') - Thermal zone not found: $ZONE_PATH" | tee -a "$LOG_FILE ${RESET}"
+            echo "${RED} $(date '+%Y-%m-%d %H:%M:%S') - Thermal zone not found: $ZONE_PATH${RESET}" | tee -a "$LOG_FILE"
             cleanup
         fi
 
@@ -345,6 +453,283 @@ case "$1" in
             echo "batterycontrol.conf copied."
         else
             echo "${RED} fancontrol.conf not found at $CONF_SOURCE $RESET"
+        fi
+    else
+        echo "FanControl will not startup automatically."
+        sudo rm -r /etc/init/batterycontrol.conf
+    fi
+        ;;
+    __monitor__)
+        echo $$ > "$PID_FILE"
+        touch "$RUN_FLAG"
+        run_loop
+        ;;
+    ""|status)
+        load_config
+        echo "FanControl Status:"
+        if [ -f "$RUN_FLAG" ]; then
+            PID=$(cat "$PID_FILE")
+            if ps -p "$PID" > /dev/null 2>&1; then
+                echo "  Status: ENABLED (PID $PID)"
+            else
+                echo "  Status: RUN FLAG PRESENT, but process not running"
+            fi
+        else
+            echo "  Status: DISABLED"
+        fi
+        echo
+        echo "Hardware Info:"
+        echo
+        sudo ectool pwmgetnumfans
+        sudo ectool pwmgetfanrpm all
+        echo "Fan curve: $FAN_MIN_TEMP°C = ${MIN_FAN}%, $FAN_MAX_TEMP°C = ${MAX_FAN}%"
+        echo "Sleep interval: $SLEEP_INTERVAL seconds"
+        echo "Step-up: $STEP_UP%, Step-down: $STEP_DOWN%"
+        ;;
+    help) show_help ;;
+    *) echo "Unknown command: $1"; show_help ;;
+esac
+
+" | tee -a "$LOG_FILE"
+    sudo ectool autofanctrl
+    rm -f "$RUN_FLAG" "$PID_FILE"
+    exit 0
+}
+
+run_loop() {
+    sudo ectool autofanctrl
+    echo "${GREEN} $(date '+%Y-%m-%d %H:%M:%S') - FanControl started." | tee -a "$LOG_FILE ${RESET}"
+
+    local last_duty=-1
+    local last_reload_time=0
+
+    while [ -f "$RUN_FLAG" ]; do
+        if [ ! -f "$ZONE_PATH" ]; then
+            echo "${RED} $(date '+%Y-%m-%d %H:%M:%S') - Thermal zone not found: $ZONE_PATH" | tee -a "$LOG_FILE ${RESET}"
+            cleanup
+        fi
+
+        now=$(date +%s)
+        if (( now - last_reload_time >= 10 )); then
+            load_config
+            last_reload_time=$now
+        fi
+
+        RAW_TEMP=$(cat "$ZONE_PATH")
+        TEMP_C=$((RAW_TEMP / 1000))
+
+        if (( TEMP_C <= FAN_MIN_TEMP )); then
+            DUTY=$MIN_FAN
+        elif (( TEMP_C >= FAN_MAX_TEMP )); then
+            DUTY=$MAX_FAN
+        else
+            RANGE=$((FAN_MAX_TEMP - FAN_MIN_TEMP))
+            OFFSET=$((TEMP_C - FAN_MIN_TEMP))
+            DUTY=$((MIN_FAN + (OFFSET * (MAX_FAN - MIN_FAN) / RANGE)))
+        fi
+
+        # Apply hysteresis / gradual ramping with asymmetric steps
+        if (( last_duty < 0 )); then
+            target_duty=$DUTY
+        else
+            target_duty=$DUTY
+            if (( target_duty > last_duty + STEP_UP )); then
+                target_duty=$((last_duty + STEP_UP))
+            elif (( target_duty < last_duty - STEP_DOWN )); then
+                target_duty=$((last_duty - STEP_DOWN))
+            fi
+        fi
+
+        KICKSTART_DUTY=50
+
+        echo "$(date '+%Y-%m-%d %H:%M:%S') CPU: ${TEMP_C}°C -> Fan: ${target_duty}%" >> "$LOG_FILE"
+
+        if (( last_duty > 0 && target_duty == 0 )); then
+            echo "Applying kickstart at ${KICKSTART_DUTY}% before setting to 0%" >> "$LOG_FILE"
+            sudo ectool fanduty "$KICKSTART_DUTY" | grep -v "Fan duty cycle set for all fans." >> "$LOG_FILE"
+            sleep 1
+            sudo ectool fanduty 0 | grep -v "Fan duty cycle set for all fans." >> "$LOG_FILE"
+        else
+            sudo ectool fanduty "$target_duty" | grep -v "Fan duty cycle set for all fans." >> "$LOG_FILE"
+        fi
+
+        last_duty=$target_duty
+
+        sleep "$SLEEP_INTERVAL"
+    done
+
+    cleanup
+}
+
+# === Start / Stop / Monitor ===
+start() {
+    "$0" stop >/dev/null 2>&1
+
+    if [ -f "$LOG_FILE" ] && [ "$(stat -c%s "$LOG_FILE")" -gt 32768 ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Truncated log file (exceeded 32KB)" > "$LOG_FILE"
+    fi
+
+    nohup "$0" __monitor__ >> "$LOG_FILE" 2>&1 &
+    echo "${GREEN} $(date '+%Y-%m-%d %H:%M:%S') - FanControl started in background. Output is logged to $LOG_FILE ${RESET}"
+}
+
+stop() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        echo "${YELLOW} $(date '+%Y-%m-%d %H:%M:%S') - Stopping fan curve (PID $PID)... ${RESET}" | tee -a "$LOG_FILE"
+        rm -f "$RUN_FLAG"
+        kill "$PID" 2>/dev/null
+        sleep 1
+    fi
+    sudo ectool fanduty 50 | grep -v "Fan duty cycle set for all fans." >> "$LOG_FILE"
+    sleep 1
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Restoring automatic fan control..." | tee -a "$LOG_FILE"
+    sudo ectool autofanctrl
+    rm -f "$RUN_FLAG" "$PID_FILE"
+}
+
+monitor() {
+    if [ -f "$MONITOR_PID_FILE" ]; then
+        MONITOR_PID=$(cat "$MONITOR_PID_FILE")
+        if ps -p "$MONITOR_PID" > /dev/null 2>&1; then
+            echo "Stopping monitor (PID $MONITOR_PID)..."
+            kill "$MONITOR_PID"
+            rm -f "$MONITOR_PID_FILE"
+            exit 0
+        else
+            rm -f "$MONITOR_PID_FILE"
+        fi
+    fi
+
+    tail -fn +1 "$LOG_FILE" &
+    echo $! > "$MONITOR_PID_FILE"
+    echo "Monitor started (PID $!)"
+}
+
+fan_min_temp() {
+    if [[ "$2" =~ ^[0-9]+$ ]]; then
+        load_config
+        FAN_MIN_TEMP=$2
+        save_config
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Min temp set to $FAN_MIN_TEMP°C"
+    else
+        echo "Usage: $0 fan_min_temp <number>"
+    fi
+}
+
+fan_max_temp() {
+    if [[ "$2" =~ ^[0-9]+$ ]] && (( $2 <= 90 )); then
+        load_config
+        FAN_MAX_TEMP=$2
+        save_config
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Max temp set to $FAN_MAX_TEMP°C"
+    else
+        echo "Usage: $0 fan_max_temp <number (<=90)>"
+    fi
+}
+
+min_fan() {
+    if [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 0 && $2 <= 100 )); then
+        load_config
+        if (( MAX_FAN > $2 )); then
+            MIN_FAN=$2
+            save_config
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Min fan set to $MIN_FAN%"
+        else
+            echo "Error: MIN_FAN must be less than MAX_FAN ($MAX_FAN)"
+        fi
+    else
+        echo "Usage: $0 min_fan <0-100>"
+    fi
+}
+
+max_fan() {
+    if [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 0 && $2 <= 100 )); then
+        load_config
+        if (( $2 > MIN_FAN )); then
+            MAX_FAN=$2
+            save_config
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Max fan set to $MAX_FAN%"
+        else
+            echo "Error: MAX_FAN must be greater than MIN_FAN ($MIN_FAN)"
+        fi
+    else
+        echo "Usage: $0 max_fan <0-100>"
+    fi
+}
+
+set_sleep_interval() {
+    if [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 10 )); then
+        load_config
+        SLEEP_INTERVAL=$2
+        save_config
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Sleep interval set to $SLEEP_INTERVAL seconds"
+    else
+        echo "Usage: $0 update <sleep_interval_seconds (1-10)>"
+    fi
+}
+
+set_stepup() {
+    if [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 100 )); then
+        load_config
+        STEP_UP=$2
+        save_config
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Step-up size set to $STEP_UP%"
+    else
+        echo "Usage: $0 stepup <step_size_percent (1-100)>"
+    fi
+}
+
+set_stepdown() {
+    if [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 100 )); then
+        load_config
+        STEP_DOWN=$2
+        save_config
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Step-down size set to $STEP_DOWN%"
+    else
+        echo "Usage: $0 stepdown <step_size_percent (1-100)>"
+    fi
+}
+
+show_help() {
+    echo "FanControl commands with examples:"
+    echo "sudo fancontrol                       # Show fan status"
+    echo "sudo fancontrol start                 # Start FanControl"
+    echo "sudo fancontrol stop                  # Stop FanControl"
+    echo "sudo fancontrol fan_min_temp 50       # Min temp threshold"
+    echo "sudo fancontrol fun_max_temp 90       # Max temp threshold"
+    echo "sudo fancontrol min_fan 0             # Min fan speed %"
+    echo "sudo fancontrol max_fan 100           # Max fan speed %"
+    echo "sudo fancontrol stepup 20             # Fan step-up %"
+    echo "sudo fancontrol stepdown 1            # Fan step-down %"
+    echo "sudo fancontrol startup               # Initiate /etc/init .conf installer"
+    echo "sudo fancontrol help                  # Help menu"
+    echo ""
+}
+
+case "$1" in
+    start) start ;;
+    stop) stop ;;
+    monitor) monitor ;;
+    fan_min_temp) fan_min_temp "$@" ;;
+    fan_max_temp) fan_max_temp "$@" ;;
+    min_fan)  min_fan "$@" ;;
+    max_fan)  max_fan "$@" ;;
+    update)   set_sleep_interval "$@" ;;
+    stepup)   set_stepup "$@" ;;
+    stepdown) set_stepdown "$@" ;;
+    startup)
+        CONF_SOURCE="$INSTALL_DIR/fancontrol.conf"
+        CONF_TARGET="/etc/init/fancontrol.conf"
+
+        read -p "Do you want FanControl to startup automatically? (y/n): " choice
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        if [ -f "$CONF_SOURCE" ]; then
+            echo "Copying batterycontrol.conf to /etc/init/..."
+            sudo cp "$CONF_SOURCE" "$CONF_TARGET"
+            echo "batterycontrol.conf copied."
+        else
+            echo "${RED} fancontrol.conf not found at $CONF_SOURCE$RESET"
         fi
     else
         echo "FanControl will not startup automatically."

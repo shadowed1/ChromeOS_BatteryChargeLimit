@@ -144,7 +144,7 @@ set_max_perf_pct() {
         if [ -w "$PERF_PATH" ]; then
             echo "$pct" | tee "$PERF_PATH" > /dev/null
         else
-            echo "${RED}Permission denied: Cannot write to $PERF_PATH ${RESET}" >&2
+            echo "${RED}Permission denied: Cannot write to $PERF_PATH${RESET}" >&2
             exit 1
         fi
     elif [ "$IS_AMD" -eq 1 ] || [ "$IS_ARM" -eq 1 ]; then
@@ -155,7 +155,7 @@ set_max_perf_pct() {
         if [ -w "$PERF_PATH" ]; then
             echo "$target_freq" | tee "$PERF_PATH" > /dev/null
         else
-            echo "${RED}Permission denied: Cannot write to $PERF_PATH ${RESET}" >&2
+            echo "${RED}Permission denied: Cannot write to $PERF_PATH${RESET}" >&2
             exit 1
         fi
         save_config
@@ -316,7 +316,7 @@ while [ -f "$RUN_FLAG" ]; do
     sleep 1
 done
 
-    echo "${YELLOW}PowerControl stopped.$RESET"
+    echo "${YELLOW}PowerControl stopped.${RESET}"
     rm -f "$PID_FILE"
 }
 
@@ -353,7 +353,7 @@ show_status() {
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
         if ps -p "$PID" > /dev/null 2>&1; then
-            echo "${GREEN}  Status: RUNNING (PID $PID)${RESET}"
+            echo "${GREEN}Status: RUNNING (PID $PID)${RESET}"
         else
             rm -f "$PID_FILE"
             rm -f "$RUN_FLAG"
@@ -376,7 +376,7 @@ show_status() {
             echo "  Current max frequency: $((current_val / 1000)) MHz"
         fi
     else
-        echo "${RED}  max_perf_pct/frequency path not found. $RESET"
+        echo "${RED}max_perf_pct/frequency path not found.${RESET}"
     fi
 
     if [ "$IS_INTEL" -eq 1 ] && [ -f "$TURBO_PATH" ]; then
@@ -407,7 +407,7 @@ stop_monitoring() {
 
     PID=$(cat "$PID_FILE")
     if ps -p "$PID" > /dev/null 2>&1; then
-        echo "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') - Stopping PowerControl (PID $PID)...$RESET"  | tee -a "$POWER_LOG"
+        echo "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') - Stopping PowerControl (PID $PID)...${RESET}"  | tee -a "$POWER_LOG"
         rm -f "$RUN_FLAG"
         kill "$PID"
 
@@ -443,11 +443,11 @@ uninstall_script() {
             echo "Uninstalling ChromeOS PowerControl..."
             sudo bash "$script"
         else
-            echo "${RED}Uninstall script not found or not executable at: $script $RESET"
+            echo "${RED}Uninstall script not found or not executable at: $script${RESET}"
             exit 1
         fi
     else
-        echo "${RED} Installation directory not found: $INSTALL_DIR $RESET"
+        echo "${RED}Installation directory not found: $INSTALL_DIR${RESET}"
         exit 1
     fi
 }
@@ -477,17 +477,17 @@ max_perf_pct() {
             current_pct=$(cat "$PERF_PATH")
             echo "Current max_perf_pct: $current_pct%"
         else
-            echo "${RED} max_perf_pct path not found: $PERF_PATH $RESET"
+            echo "${RED}max_perf_pct path not found: $PERF_PATH${RESET}"
             exit 1
         fi
     else
         if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-            echo "${RED}Error: max_perf_pct value must be an integer. $RESET"
+            echo "${RED}Error: max_perf_pct value must be an integer.${RESET}"
             exit 1
         fi
 
         if (( $2 < 10 || $2 > 100 )); then
-            echo "${RED}Error: max_perf_pct must be between 10 and 100. $RESET"
+            echo "${RED}Error: max_perf_pct must be between 10 and 100.${RESET}"
             exit 1
         fi
 
@@ -512,7 +512,7 @@ if [ -f "$POWER_LOG" ] && [ "$(stat -c%s "$POWER_LOG")" -gt 32768 ]; then
 fi
 
 nohup "$0" __monitor__ >> "$POWER_LOG" 2>&1 &
-echo "${GREEN} $(date '+%Y-%m-%d %H:%M:%S') - PowerControl monitoring started in background. Output is logged to $POWER_LOG ${RESET}"
+echo "${GREEN}$(date '+%Y-%m-%d %H:%M:%S') - PowerControl monitoring started in background. Output is logged to $POWER_LOG${RESET}"
 
         ;;
     stop)
@@ -587,7 +587,7 @@ echo "${GREEN} $(date '+%Y-%m-%d %H:%M:%S') - PowerControl monitoring started in
             sudo cp "$CONF_SOURCE" "$CONF_TARGET"
             echo "powercontrol.conf copied."
         else
-            echo "${RED} powercontrol.conf not found at $CONF_SOURCE $RESET"
+            echo "${RED}powercontrol.conf not found at $CONF_SOURCE${RESET}"
         fi
     else
         echo "PowerControl will not startup automatically on boot."

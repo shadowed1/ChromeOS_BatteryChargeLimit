@@ -102,16 +102,16 @@ battery_status() {
         if [ -f "$PID_FILE" ]; then
             PID=$(cat "$PID_FILE")
             if ps -p "$PID" > /dev/null 2>&1; then
-                echo "${GREEN}BatteryControl is: ENABLED (running, PID $PID)$RESET"
+                echo "${GREEN}BatteryControl is: ENABLED (running, PID $PID)${RESET}"
             else
-                echo "${YELLOW}BatteryControl is: ENABLED (but process is NOT running)$RESET"
+                echo "${YELLOW}BatteryControl is: ENABLED (but process is NOT running)${RESET}"
                 rm -f "$PID_FILE"
             fi
         else
-            echo "${YELLOW}BatteryControl is: ENABLED (PID not found)$RESET"
+            echo "${YELLOW}BatteryControl is: ENABLED (PID not found)${RESET}"
         fi
     else
-        echo "${RED}BatteryControl is: DISABLED$RESET"
+        echo "${RED}BatteryControl is: DISABLED{$RESET}"
     fi
 
     echo "  CHARGE_MAX: $CHARGE_MAX"
@@ -122,13 +122,13 @@ start_monitoring_loop() {
     touch "$RUN_FLAG"
     echo $$ > "$PID_FILE"
 
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - BatteryControl started - keep it running for it to remain functioning. (PID $$)."
+    echo "${GREEN}$(date '+%Y-%m-%d %H:%M:%S') - BatteryControl started. (PID $$).${RESET}"
 
     local last_reload_time=0
 
     while true; do
         if [ ! -f "$RUN_FLAG" ]; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - BatteryControl disabled, exiting monitoring loop."
+            echo "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') - BatteryControl stopped, exiting monitoring loop${RESET}."
             rm -f "$PID_FILE"
             exit 0
         fi
@@ -173,7 +173,7 @@ stop_monitoring() {
         PID=$(cat "$PID_FILE")
         if ps -p "$PID" > /dev/null 2>&1; then
             kill "$PID"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - Stopped BatteryControl process (PID $PID)."
+            echo "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') - Stopped BatteryControl (PID $PID).${RESET}"
         fi
         rm -f "$PID_FILE"
     fi
@@ -197,7 +197,7 @@ case "$1" in
         fi
 
         nohup "$0" __monitor__ >> "$LOG_FILE" 2>&1 &
-        echo "${GREEN} $(date '+%Y-%m-%d %H:%M:%S') - BatteryControl monitoring started in background. Output is logged to $LOG_FILE $RESET"
+        echo "${GREEN}$(date '+%Y-%m-%d %H:%M:%S') - BatteryControl monitoring started in background. Output is logged to $LOG_FILE${RESET}"
         ;;
     stop)
         stop_monitoring
@@ -216,7 +216,7 @@ case "$1" in
             sudo cp "$CONF_SOURCE" "$CONF_TARGET"
             echo "batterycontrol.conf copied."
         else
-            echo "${RED} batterycontrol.conf not found at $CONF_SOURCE $RESET"
+            echo "${RED}batterycontrol.conf not found at $CONF_SOURCE${RESET}"
         fi
     else
         echo "BatteryControl will not startup automatically."

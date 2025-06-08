@@ -86,9 +86,7 @@ __Commands with examples:__
 
 `sudo powercontrol uninstall            # Global uninstaller that will clean up after itself`
 
-*Alternative uninstall:*
-
-<br>
+*Alternative uninstall:* <br>
 
  `sudo /usr/local/bin/ChromeOS_PowerControl/Uninstall_ChromeOS_PowerControl.sh`
 <br> <br> <br>

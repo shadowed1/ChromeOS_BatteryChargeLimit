@@ -191,7 +191,7 @@ start() {
 stop() {
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
-        echo "${YELLOW} $(date '+%Y-%m-%d %H:%M:%S') - Stopping fan curve (PID $PID)..." | tee -a "$LOG_FILE${RESET}"
+        echo "${YELLOW} $(date '+%Y-%m-%d %H:%M:%S') - Stopping fan curve (PID $PID)...${RESET}" | tee -a "$LOG_FILE"
         rm -f "$RUN_FLAG"
         kill "$PID" 2>/dev/null
         sleep 1

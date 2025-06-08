@@ -374,7 +374,7 @@ case "$1" in
         echo
         sudo ectool pwmgetnumfans
         sudo ectool pwmgetfanrpm all
-        echo "FanControl: $FAN_MIN_TEMP°C = ${MIN_FAN}%, $FAN_MAX_TEMP°C = ${MAX_FAN}%"
+        echo "Fan Curve: $FAN_MIN_TEMP°C = ${MIN_FAN}%, $FAN_MAX_TEMP°C = ${MAX_FAN}%"
         echo "Sleep interval: $SLEEP_INTERVAL seconds"
         echo "Step-up: $STEP_UP%, Step-down: $STEP_DOWN%"
         ;;

@@ -34,7 +34,6 @@ __How to Install:__
 <br> <br> <br>
 
 __Commands with examples:__
-<br>
 
 *PowerControl:*
 
@@ -51,7 +50,6 @@ __Commands with examples:__
 `sudo powercontrol help                # Help menu"`<br>
   
 ----------------------------------------------------------------------------------------------
-<br>
 
 *BatteryControl:*
 
@@ -63,7 +61,6 @@ __Commands with examples:__
 `sudo batterycontrol help              # Help menu"`<br>
 
 ----------------------------------------------------------------------------------------------
-<br>
 
 *FanControl:*
 
@@ -80,7 +77,6 @@ __Commands with examples:__
 `sudo fancontrol help                  # Help menu"`<br>
 
 ----------------------------------------------------------------------------------------------
-<br>
 
 *Uninstall:*
 
@@ -89,7 +85,10 @@ __Commands with examples:__
 *Alternative uninstall:* <br>
 
  `sudo /usr/local/bin/ChromeOS_PowerControl/Uninstall_ChromeOS_PowerControl.sh`
-<br> <br> <br>
+
+ ----------------------------------------------------------------------------------------------
+ 
+<br> 
 
 __How It Works:__
 

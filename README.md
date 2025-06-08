@@ -14,7 +14,7 @@
 - Optionally have BatteryControl, PowerControl, FanControl start on boot; as well as disabling Turbo Boost on boot if user has rootfs verification disabled.
 <br> <br> <br>
 
-*How to Install:*
+__How to Install:__
 
 - Open crosh shell and run:
 
@@ -30,7 +30,8 @@
 - Installer has prompts to customize installation.
 - PowerControl, BatteryControl, and FanControl can run in the background and can be adjusted in real-time.
 <br> <br> <br>
-Commands with examples:
+
+__Commands with examples:__
 <br>
 
 *PowerControl:*
@@ -81,11 +82,14 @@ Commands with examples:
 
 *Uninstall:*
 
-- `sudo powercontrol uninstall            # Global uninstaller that will clean up after itself`
-- Alternative uninstall method: `sudo /usr/local/bin/ChromeOS_PowerControl/Uninstall_ChromeOS_PowerControl.sh`
+`sudo powercontrol uninstall            # Global uninstaller that will clean up after itself`
+
+Alternative uninstall: <br>
+
+ `sudo /usr/local/bin/ChromeOS_PowerControl/Uninstall_ChromeOS_PowerControl.sh`
 <br> <br> <br>
 
-How It Works:
+__How It Works:__
 
 <br>
 
@@ -116,12 +120,14 @@ How It Works:
 
 <br>
 
-Bonus:
+__Bonus:__
 - To disable rootfs verification open VT-2, login as root, and run:
  `/usr/libexec/debugd/helpers/dev_features_rootfs_verification`
 - Enable sudo for crosh: `https://gist.github.com/velzie/a5088c9ade6ec4d35435b9826b45d7a3`
 
-Credits:
+<br>
+
+__Credits:__
 
 - Thanks to WesBosch for helping me learn to make an installer:
   https://github.com/WesBosch

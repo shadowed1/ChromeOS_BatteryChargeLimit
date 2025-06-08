@@ -16,16 +16,18 @@
 
 __How to Install:__
 
-- Open crosh shell and run:
+- Open crosh shell and run: <br>
 
-- `bash <(curl -s "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/beta/ChromeOS_PowerControl_Downloader.sh?$(date +%s)")`
+ `bash <(curl -s "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/beta/ChromeOS_PowerControl_Downloader.sh?$(date +%s)")`
 
-- The installer will be placed: <br> `/home/chronos/ChromeOS_PowerControl/ChromeOS_PowerControl_Installer.sh`
+- The installer will be placed: <br>
+
+  `/home/chronos/ChromeOS_PowerControl/ChromeOS_PowerControl_Installer.sh`
 
 - In *VT-2* or *crosh shell with sudo enabled* run:
   
-- `sudo mv ~/tmp/ChromeOS_PowerControl_Installer.sh /usr/local/bin`
-- `sudo bash /usr/local/bin/ChromeOS_PowerControl_Installer.sh`
+ `sudo mv ~/tmp/ChromeOS_PowerControl_Installer.sh /usr/local/bin`
+ `sudo bash /usr/local/bin/ChromeOS_PowerControl_Installer.sh`
 
 - Installer has prompts to customize installation.
 - PowerControl, BatteryControl, and FanControl can run in the background and can be adjusted in real-time.

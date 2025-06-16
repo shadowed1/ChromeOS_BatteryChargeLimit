@@ -112,8 +112,8 @@ __Commands with examples:__
 `sudo sleepcontrol                     # Show current GPU info and frequency`<br>
 `sudo sleepcontrol start               # Start SleepControl`<br>
 `sudo sleepcontrol stop                # Stop SleepControl`<br>
-`sudo sleepcontrol battery 5 10        # When idle, display timeout in 10m and ChromeOS sleeps in 15m when on battery`<br>
-`sudo sleepcontrol power 15 30         # When idle, display timeout in 15m and ChromeOS sleeps in 30m when on plugged-in`<br>
+`sudo sleepcontrol battery 3 7 12      # When idle, display dims in 3m, timeout in 7m, and ChromeOS sleeps in 12m when on battery`<br>
+`sudo sleepcontrol power 5 15 30       # When idle, display dims in 5m, timeout in 15m and ChromeOS sleeps in 30m when on plugged-in`<br>
 `sudo sleepcontrol startup             # Copy or Remove sleepcontrol.conf at: /etc/init/`<br>
 `sudo sleepcontrol help                # Help menu`<br>
 

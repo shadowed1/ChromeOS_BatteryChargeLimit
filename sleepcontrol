@@ -203,9 +203,8 @@ flock -n 200 || {
                     fi
                     if [[ -n "$BRIGHTNESS_PATH" ]]; then
                         user_display_brightness=$(cat "$BRIGHTNESS_PATH" 2>/dev/null || echo 0)
-                        if [[ $saved_display_brightness -gt 0 ]]; then
-                            echo "$saved_display_brightness" | sudo tee "$BRIGHTNESS_PATH" >/dev/null
-                        fi
+                        saved_display_brightness="$user_display_brightness"
+
                     fi
                     monitor_idle=0
                     active=1
@@ -244,9 +243,6 @@ flock -n 200 || {
                     local max_brightness
                     max_brightness=$(cat "$MAX_BRIGHTNESS_PATH" 2>/dev/null || echo 255)
             
-                    if [[ -n "$BRIGHTNESS_PATH" ]]; then
-                        saved_display_brightness=$(cat "$BRIGHTNESS_PATH" 2>/dev/null || echo 0)
-                    fi
 
                     local dim_value
                    if [[ $user_display_brightness -gt 0 ]]; then

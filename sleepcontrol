@@ -128,7 +128,7 @@ send_fake_activity() {
         /org/chromium/PowerManager \
         org.chromium.PowerManager.HandleUserActivity int32:0 int32:0
     save_sim_time
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Simulated user activity." >> "$LOG_FILE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Simulated activity." >> "$LOG_FILE"
 }
 
 monitor_idle_activity() {
@@ -213,7 +213,6 @@ flock -n 200 || {
                     sudo ectool pwmsetkblight "$saved_kb_brightness" 2>/dev/null
                     backlight_off=0
                     kb_brightness_restored=1
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - Restored keyboard and display backlight due to triggered wake." >> "$LOG_FILE"
                     power_backlight_ts=$now
                     battery_backlight_ts=$now
                 ;;
@@ -349,12 +348,12 @@ flock -n 200 || {
         done
 
         if (( DIM_VAL > BACKLIGHT_VAL )); then
-            echo "${RED}Dim delay cannot be greater than backlight off delay.${RESET}"
+            echo "${RED}Dim timer cannot be greater than display timeout.${RESET}"
             exit 1
         fi
 
         if (( BACKLIGHT_VAL > DELAY_VAL )); then
-            echo "${RED}Backlight off delay cannot be greater than sleep delay.${RESET}"
+            echo "${RED}Display timeout cannot be greater than sleep timer.${RESET}"
             exit 1
         fi
 
@@ -400,7 +399,10 @@ flock -n 200 || {
         fi
 
         save_config
-        echo "${GREEN}${BOLD}${MODE^}${RESET}${GREEN} Display timeout set to ${BOLD}${BACKLIGHT_VAL} min${RESET}${GREEN}, Sleep set to ${BOLD}${DELAY_VAL} min.${RESET}"
+         echo ""
+            echo "Battery = Dim: $((BATTERY_DIM_DELAY)) min -> Timeout: $((BATTERY_BACKLIGHT)) min -> Sleep: $((BATTERY_DELAY)) min"
+            echo "Powered = Dim: $((POWER_DIM_DELAY)) min -> Timeout: $((POWER_BACKLIGHT)) min -> Sleep: $((POWER_DELAY)) min"
+            echo ""
 
     elif [[ $# -eq 2 ]]; then
         # 1 value: sleep_delay only (deprecated? or for backward compatibility)
@@ -424,9 +426,9 @@ flock -n 200 || {
         # No parameters - show current config
         load_config
         if [[ "$MODE" == "battery" ]]; then
-            echo "Battery: Dim delay = ${BATTERY_DIM_DELAY:-N/A} min, Display timeout = ${BATTERY_BACKLIGHT:-N/A} min, Sleep = ${BATTERY_DELAY:-N/A} min"
+            echo "Battery = Dim: $((BATTERY_DIM_DELAY)) min -> Timeout: $((BATTERY_BACKLIGHT)) min -> Sleep: $((BATTERY_DELAY)) min"
         else
-            echo "Power: Dim delay = ${POWER_DIM_DELAY:-N/A} min, Display timeout = ${POWER_BACKLIGHT:-N/A} min, Sleep = ${POWER_DELAY:-N/A} min"
+            echo "Powered = Dim: $((POWER_DIM_DELAY)) min -> Timeout: $((POWER_BACKLIGHT)) min -> Sleep: $((POWER_DELAY)) min"
         fi
     fi
     ;;
@@ -460,7 +462,7 @@ flock -n 200 || {
             fi
             echo ""
             echo "Battery = Dim: $((BATTERY_DIM_DELAY)) min -> Timeout: $((BATTERY_BACKLIGHT)) min -> Sleep: $((BATTERY_DELAY)) min"
-            echo "Power = Dim: $((POWER_DIM_DELAY)) min -> Timeout: $((POWER_BACKLIGHT)) min -> Sleep: $((POWER_DELAY)) min"
+            echo "Powered = Dim: $((POWER_DIM_DELAY)) min -> Timeout: $((POWER_BACKLIGHT)) min -> Sleep: $((POWER_DELAY)) min"
             echo ""
         else
             echo "${RED}SleepControl Status: STOPPED${RESET}"

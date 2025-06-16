@@ -12,7 +12,7 @@ ChromeOS_PowerControl is a suite of lightweight shell scripts.
 - *BatteryControl:* Control battery charging limit instead of relying on Adaptive Charging to maximize battery longevity.<br>
 - *FanControl:* Control fan curve in relation to temperature with built-in hysteresis and 0% RPM mode.<br>
 - *GPUControl:* Control GPU clockspeed below its default maximum; enabling longer battery life under load.<br>
-- *SleepControl:* Control how long ChromeOS can remain idle before sleep; irrespective of system sleep settings.<br>
+- *SleepControl:* Control how long ChromeOS can remain idle before sleep; with display dimming support.<br>
   <br> <br>
 - Features global commands for ease of use, a unified config file, and the ability to change settings in real-time. 
 - Has a feature-rich installer, an uninstaller that cleans up after itself, and logs stored in /var/log/ for statistics.

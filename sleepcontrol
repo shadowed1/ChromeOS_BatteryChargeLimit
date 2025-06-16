@@ -202,19 +202,21 @@ flock -n 200 || {
                         echo "$(date '+%Y-%m-%d %H:%M:%S') - Pausing dbus-send simulation..." >> "$LOG_FILE"
                     fi
                     if [[ -n "$BRIGHTNESS_PATH" ]]; then
-                        current_brightness=$(cat "$BRIGHTNESS_PATH" 2>/dev/null || echo 0)
-                
+    current_brightness=$(cat "$BRIGHTNESS_PATH" 2>/dev/null || echo 0)
+
                         if (( current_brightness < saved_display_brightness )); then
                             echo "$saved_display_brightness" | sudo tee "$BRIGHTNESS_PATH" >/dev/null
                             echo "$(date '+%Y-%m-%d %H:%M:%S') - Restored brightness to $saved_display_brightness" >> "$LOG_FILE"
                         fi
-                    
+
                         if (( current_brightness > saved_display_brightness )); then
                             saved_display_brightness="$current_brightness"
                             echo "$(date '+%Y-%m-%d %H:%M:%S') - Updated saved_display_brightness to $current_brightness" >> "$LOG_FILE"
                         fi
-                        user_display_brightness="$current_brightness"
+                
+                        user_display_brightness="$saved_display_brightness"
                     fi
+                    
 
                     monitor_idle=0
                     active=1
@@ -256,7 +258,7 @@ flock -n 200 || {
 
                     local dim_value
                    if [[ $user_display_brightness -gt 0 ]]; then
-                        dim_value=$((user_display_brightness / 8))
+                        dim_value=$((saved_display_brightness / 8))
                     else
                         dim_value=$((max_brightness / 8))
                     fi

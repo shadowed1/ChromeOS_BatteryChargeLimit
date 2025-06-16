@@ -314,12 +314,12 @@ if [[ -z "${FAN_MAX_TEMP}" ]]; then FAN_MAX_TEMP=80; fi
 if [[ -z "${STEP_UP}" ]]; then STEP_UP=20; fi
 if [[ -z "${STEP_DOWN}" ]]; then STEP_DOWN=1; fi
 if [[ -z "${SLEEP_INTERVAL}" ]]; then SLEEP_INTERVAL=3; fi
-if [[ -z "${BATTERY_DELAY}" ]]; then BATTERY_DELAY=15; fi
-if [[ -z "${BATTERY_BACKLIGHT}" ]]; then BATTERY_BACKLIGHT=10; fi
-if [[ -z "${BATTERY_DIM_DELAY}" ]]; then BATTERY_DIM_DELAY=5; fi
+if [[ -z "${BATTERY_DELAY}" ]]; then BATTERY_DELAY=12; fi
+if [[ -z "${BATTERY_BACKLIGHT}" ]]; then BATTERY_BACKLIGHT=7; fi
+if [[ -z "${BATTERY_DIM_DELAY}" ]]; then BATTERY_DIM_DELAY=3; fi
 if [[ -z "${POWER_DELAY}" ]]; then POWER_DELAY=30; fi
 if [[ -z "${POWER_BACKLIGHT}" ]]; then POWER_BACKLIGHT=15; fi
-if [[ -z "${POWER_DIM_DELAY}" ]]; then POWER_DIM_DELAY=10; fi
+if [[ -z "${POWER_DIM_DELAY}" ]]; then POWER_DIM_DELAY=5; fi
 
 declare -A defaults=(
   [MAX_TEMP]=$MAX_TEMP
@@ -575,8 +575,8 @@ echo "# SleepControl"
 echo "sudo sleepcontrol                     # Show current GPU info and frequency"
 echo "sudo sleepcontrol start               # Start SleepControl"
 echo "sudo sleepcontrol stop                # Stop SleepControl"
-echo "sudo sleepcontrol battery 5 10        # When idle, display timeout in 10m and ChromeOS sleeps in 15m when on battery"
-echo "sudo sleepcontrol power 15 30         # When idle, display timeout in 15m and ChromeOS sleeps in 30m when on plugged-in" 
+echo "sudo sleepcontrol battery 3 7 12      # When idle, display dims in 3m, timeout in 7m, and ChromeOS sleeps in 12m when on battery"
+echo "sudo sleepcontrol power 5 15 30       # When idle, display dims in 5m, timeout in 15m and ChromeOS sleeps in 30m when on plugged-in" 
 echo "sudo sleepcontrol startup             # Copy or Remove sleepcontrol.conf at: /etc/init/"
 echo "sudo sleepcontrol help                # Help menu"
 echo "${RESET}${BOLD}"

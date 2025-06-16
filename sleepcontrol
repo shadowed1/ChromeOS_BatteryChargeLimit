@@ -151,6 +151,7 @@ flock -n 200 || {
     local fake_activity_pid=0
     local last_reload_time=0
     local saved_kb_brightness=$(sudo ectool pwmgetkblight | awk '{print $NF}')
+    local user_display_brightness="$saved_display_brightness"
    
     if [[ -n "$BRIGHTNESS_PATH" ]]; then
     saved_display_brightness=$(cat "$BRIGHTNESS_PATH" 2>/dev/null || echo 0)
@@ -201,7 +202,7 @@ flock -n 200 || {
                         echo "$(date '+%Y-%m-%d %H:%M:%S') - Pausing dbus-send simulation..." >> "$LOG_FILE"
                     fi
                     if [[ -n "$BRIGHTNESS_PATH" ]]; then
-                        saved_display_brightness=$(cat "$BRIGHTNESS_PATH" 2>/dev/null || echo 0)
+                        user_display_brightness=$(cat "$BRIGHTNESS_PATH" 2>/dev/null || echo 0)
                         if [[ $saved_display_brightness -gt 0 ]]; then
                             echo "$saved_display_brightness" | sudo tee "$BRIGHTNESS_PATH" >/dev/null
                         fi
@@ -248,8 +249,8 @@ flock -n 200 || {
                     fi
 
                     local dim_value
-                    if [[ $saved_display_brightness -gt 0 ]]; then
-                        dim_value=$((saved_display_brightness / 8))
+                   if [[ $user_display_brightness -gt 0 ]]; then
+                        dim_value=$((user_display_brightness / 8))
                     else
                         dim_value=$((max_brightness / 8))
                     fi

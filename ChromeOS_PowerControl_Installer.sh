@@ -203,7 +203,7 @@ for file in "${files[@]}"; do
         continue
     fi
         echo "Downloading $file to $dest..."
-    if curl -fsSL "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/main/$file" -o "$dest"; then
+    if curl -fsSL "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/unstable/$file" -o "$dest"; then
         if grep -q "@INSTALL_DIR@" "$dest"; then
             sed -i "s|@INSTALL_DIR@|$INSTALL_DIR|g" "$dest"
         fi

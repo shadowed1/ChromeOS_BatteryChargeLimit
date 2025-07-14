@@ -742,7 +742,7 @@ case "$1" in
         CURRENT_VER=$(cat "$INSTALL_DIR/version")
         CURRENT_VER_NO=$(echo "$CURRENT_VER" | sed -e 's/VERSION=//' -e 's/"//g' -e 's/\.//g' -e 's/^0*//')
 
-        LATEST_VER=$(curl -Ls https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/main/version)
+        LATEST_VER=$(curl -Ls https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/beta/version)
         LATEST_VER_NO=$(echo "$LATEST_VER" | sed -e 's/VERSION=//' -e 's/"//g' -e 's/\.//g' -e 's/^0*//')
 
         if (( 10#$CURRENT_VER_NO < 10#$LATEST_VER_NO )); then
@@ -765,7 +765,7 @@ case "$1" in
 
     reinstall)
     echo "Downloading to:${CYAN} /home/chronos/ChromeOS_PowerControl_Installer.sh $RESET"
-    bash <(curl -s "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/main/ChromeOS_PowerControl_Downloader.sh?$(date +%s)")
+    bash <(curl -s "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/beta/ChromeOS_PowerControl_Downloader.sh?$(date +%s)")
     echo "Running commands:"
     echo ""
     sudo mkdir -p /usr/local/bin

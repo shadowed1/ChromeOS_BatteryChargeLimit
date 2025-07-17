@@ -15,6 +15,7 @@ PID_FILE="$INSTALL_DIR/.powercontrol_pid"
 VERSION_FILE="$INSTALL_DIR/version"
 CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
 PERF_PATH=""
+PERF_PATHS=""
 TURBO_PATH=""
 IS_AMD=0
 IS_INTEL=0

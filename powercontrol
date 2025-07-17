@@ -479,6 +479,66 @@ show_status() {
     echo
 }
 
+# display cpu temp in status
+if [ $# -eq 0 ]; then
+    show_status
+    exit 0
+fi
+
+stop_monitoring() {
+    if [ -n "$POWERCONTROL_STOPPING" ]; then
+        return
+    fi
+    POWERCONTROL_STOPPING=1
+
+    if [ ! -f "$PID_FILE" ]; then
+        return
+    fi
+
+    PID=$(cat "$PID_FILE")
+    if ps -p "$PID" > /dev/null 2>&1; then
+        echo "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') - Stopping PowerControl (PID $PID)...${RESET}"  | tee -a "$LOG_FILE"
+        rm -f "$RUN_FLAG"
+        kill "$PID"
+
+        for i in {1..10}; do
+            if ! ps -p "$PID" > /dev/null 2>&1; then
+                echo "PowerControl stopped."
+                rm -f "$PID_FILE"
+                return
+            fi
+            sleep 1
+        done
+        kill -9 "$PID"
+        rm -f "$PID_FILE"
+    else
+        rm -f "$PID_FILE"
+        rm -f "$RUN_FLAG"
+    fi
+}
+
+uninstall_script() {
+    if [ -z "$INSTALL_DIR" ]; then
+        echo "Error: INSTALL_DIR is not set."
+        exit 1
+    fi
+
+    local script="$INSTALL_DIR/Uninstall_ChromeOS_PowerControl.sh"
+
+    if [ -d "$INSTALL_DIR" ]; then
+        if [ -x "$script" ]; then
+            echo "Uninstalling ChromeOS PowerControl..."
+            sudo bash "$script"
+        else
+            echo "${RED}Uninstall script not found or not executable at: $script${RESET}"
+            exit 1
+        fi
+    else
+        echo "${RED}Installation directory not found: $INSTALL_DIR${RESET}"
+        exit 1
+    fi
+}
+
 
 show_help() {
 echo "${CYAN}"

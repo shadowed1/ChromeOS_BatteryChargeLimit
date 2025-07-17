@@ -29,13 +29,13 @@ detect_cpu_type() {
             if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
-                PERF_PATH="/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq"
+                PERF_PATH="/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq"
             fi
             TURBO_PATH=""
             ;;
         *)
             IS_ARM=1
-            PERF_PATH="/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq"
+            PERF_PATHS="(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)"
             TURBO_PATH=""
             ;;
     esac

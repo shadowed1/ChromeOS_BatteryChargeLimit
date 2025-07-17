@@ -28,16 +28,7 @@ if ! ( [[ -z "$1" ]] || [[ "$1" == "--h" || "$1" == "-h" || "$1" == "h" || "$1" 
 fi
 
 
-detect_cpu_type() {
-    CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
-    IS_INTEL=0
-    IS_AMD=0
-    IS_ARM=0
-    PERF_PATH=""
-    PERF_PATHS=()
-    TURBO_PATH=""
-
-    case "$CPU_VENDOR" in
+ case "$CPU_VENDOR" in
         GenuineIntel)
             IS_INTEL=1
             if [ -f "/sys/devices/system/cpu/intel_pstate/max_perf_pct" ]; then
@@ -51,11 +42,15 @@ detect_cpu_type() {
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
                 mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
+                PERF_PATHS_STR="${PERF_PATHS[*]}"
+                echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
             fi
             ;;
         *)
             IS_ARM=1
             mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
+            PERF_PATHS_STR="${PERF_PATHS[*]}"
+            echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
             ;;
     esac
 }

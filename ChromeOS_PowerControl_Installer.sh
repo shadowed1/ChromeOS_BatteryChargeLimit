@@ -35,12 +35,12 @@ detect_cpu_type() {
             if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
-                PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
+                mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
             fi
             ;;
         *)
             IS_ARM=1
-            PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
+            mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
             ;;
     esac
 }

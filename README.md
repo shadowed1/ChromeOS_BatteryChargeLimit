@@ -32,7 +32,7 @@
 
 - Open crosh shell and run: <br>
 
- `bash <(curl -s "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/main/ChromeOS_PowerControl_Downloader.sh?$(date +%s)")`
+ `bash <(curl -s "https://raw.githubusercontent.com/shadowed1/ChromeOS_PowerControl/unstable/ChromeOS_PowerControl_Downloader.sh?$(date +%s)")`
 
 - The installer will be placed: <br>
 

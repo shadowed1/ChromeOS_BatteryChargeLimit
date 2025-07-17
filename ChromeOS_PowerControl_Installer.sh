@@ -81,20 +81,22 @@ if [ -f "/sys/class/drm/card0/device/pp_od_clk_voltage" ]; then
 fi
 
     # Mali
-    if [ -d "/sys/class/devfreq/mali0" ]; then
-        if [ -f "/sys/class/devfreq/mali0/max_freq" ]; then
-            GPU_FREQ_PATH="/sys/class/devfreq/mali0/max_freq"
+for d in /sys/class/devfreq/*; do
+    if grep -qi 'mali' <<< "$d" || grep -qi 'gpu' <<< "$d"; then
+        if [ -f "$d/max_freq" ]; then
+            GPU_FREQ_PATH="$d/max_freq"
             GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
             GPU_TYPE="mali"
             return
-        elif [ -f "/sys/class/devfreq/mali0/available_frequencies" ]; then
-            GPU_FREQ_PATH="/sys/class/devfreq/mali0/available_frequencies"
-            MAX_FREQ=$(tr ' ' '\n' < "$GPU_FREQ_PATH" | sort -nr | head -n1)
-            GPU_MAX_FREQ=$MAX_FREQ
+        elif [ -f "$d/available_frequencies" ]; then
+            GPU_FREQ_PATH="$d/available_frequencies"
+            GPU_MAX_FREQ=$(tr ' ' '\n' < "$GPU_FREQ_PATH" | sort -nr | head -n1)
             GPU_TYPE="mali"
             return
         fi
     fi
+done
+
     # Adreno
     if [ -d "/sys/class/kgsl/kgsl-3d0" ]; then
         if [ -f "/sys/class/kgsl/kgsl-3d0/max_gpuclk" ]; then

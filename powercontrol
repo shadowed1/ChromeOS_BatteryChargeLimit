@@ -41,15 +41,16 @@ detect_cpu_type() {
             if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
-                PERF_PATH="/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq"
+                PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
             fi
             ;;
         *)
             IS_ARM=1
-            PERF_PATH="/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq"
+            PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
             ;;
     esac
 }
+
     DEFAULT_HOTZONE=80
     DEFAULT_MIN_TEMP=60
     DEFAULT_MAX_TEMP=87

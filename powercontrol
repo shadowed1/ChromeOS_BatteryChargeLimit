@@ -27,8 +27,16 @@ if ! ( [[ -z "$1" ]] || [[ "$1" == "--h" || "$1" == "-h" || "$1" == "h" || "$1" 
     exit 1
 fi
 
+ detect_cpu_type() {
+    CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
+    IS_INTEL=0
+    IS_AMD=0
+    IS_ARM=0
+    PERF_PATH=""
+    PERF_PATHS=()
+    TURBO_PATH=""
 
- case "$CPU_VENDOR" in
+    case "$CPU_VENDOR" in
         GenuineIntel)
             IS_INTEL=1
             if [ -f "/sys/devices/system/cpu/intel_pstate/max_perf_pct" ]; then
@@ -42,18 +50,15 @@ fi
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
                 mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
-                PERF_PATHS_STR="${PERF_PATHS[*]}"
-                echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
             fi
             ;;
         *)
             IS_ARM=1
             mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
-            PERF_PATHS_STR="${PERF_PATHS[*]}"
-            echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
             ;;
     esac
 }
+
 
     DEFAULT_HOTZONE=80
     DEFAULT_MIN_TEMP=60
@@ -78,6 +83,9 @@ fi
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
+        if [[ -n "$PERF_PATHS" ]]; then
+            IFS=' ' read -r -a PERF_PATHS <<< "$PERF_PATHS"
+        fi
     else
         echo "Creating default configuration..."
         MIN_TEMP=${MIN_TEMP:-$DEFAULT_MIN_TEMP}
@@ -91,6 +99,7 @@ load_config() {
         validate_config
     fi
 }
+
 
 validate_config() {
     # Set defaults if empty
@@ -157,6 +166,27 @@ validate_config() {
 
 }
 
+load_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+        # Reconstruct PERF_PATHS as an array if it was saved as a space-separated string
+        if [[ -n "$PERF_PATHS" ]]; then
+            IFS=' ' read -r -a PERF_PATHS <<< "$PERF_PATHS"
+        fi
+    else
+        echo "Creating default configuration..."
+        MIN_TEMP=${MIN_TEMP:-$DEFAULT_MIN_TEMP}
+        MAX_TEMP=${MAX_TEMP:-$DEFAULT_MAX_TEMP}
+        MIN_PERF_PCT=${MIN_PERF_PCT:-$DEFAULT_MIN_PERF_PCT}
+        MAX_PERF_PCT=${MAX_PERF_PCT:-$DEFAULT_MAX_PERF_PCT}
+        HOTZONE=${HOTZONE:-$DEFAULT_HOTZONE}
+        RAMP_UP=${RAMP_UP:-$DEFAULT_RAMP_UP}
+        RAMP_DOWN=${RAMP_DOWN:-$DEFAULT_RAMP_DOWN}
+        CPU_POLL=${CPU_POLL:-$DEFAULT_CPU_POLL}
+        validate_config
+    fi
+}
+
 save_config() {
     validate_config
 
@@ -168,7 +198,16 @@ save_config() {
     sed -i "s/^RAMP_DOWN=.*/RAMP_DOWN=$RAMP_DOWN/" "$CONFIG_FILE" || echo "RAMP_DOWN=$RAMP_DOWN" >> "$CONFIG_FILE"
     sed -i "s/^HOTZONE=.*/HOTZONE=$HOTZONE/" "$CONFIG_FILE" || echo "HOTZONE=$HOTZONE" >> "$CONFIG_FILE"
     sed -i "s/^CPU_POLL=.*/CPU_POLL=$CPU_POLL/" "$CONFIG_FILE" || echo "CPU_POLL=$CPU_POLL" >> "$CONFIG_FILE"
-    source "$INSTALL_DIR/config.sh"
+
+    if [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
+        PERF_PATHS_STR="${PERF_PATHS[*]}"
+        sed -i "s|^PERF_PATHS=.*|PERF_PATHS=\"$PERF_PATHS_STR\"|" "$CONFIG_FILE" || echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
+    fi
+
+    source "$CONFIG_FILE"
+    if [[ -n "$PERF_PATHS" ]]; then
+        IFS=' ' read -r -a PERF_PATHS <<< "$PERF_PATHS"
+    fi
 }
 
 

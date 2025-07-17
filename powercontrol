@@ -41,12 +41,12 @@ detect_cpu_type() {
             if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
-                PERF_PATH="(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)"
+                PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
             fi
             ;;
         *)
             IS_ARM=1
-            PERF_PATH="(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)"
+            PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
             ;;
     esac
 }
@@ -187,25 +187,33 @@ load_config
 set_max_perf_pct() {
     local pct=$1
     load_config
+
     if (( IS_INTEL == 1 || IS_AMD == 1 )) && [[ "$PERF_PATH" == *max_perf_pct ]]; then
         if [ -w "$PERF_PATH" ]; then
-            echo "$pct" | tee "$PERF_PATH" > /dev/null
+            echo "$pct" | sudo tee "$PERF_PATH" > /dev/null
         else
             echo "${RED}Permission denied: Cannot write to $PERF_PATH${RESET}" >&2
             exit 1
         fi
-   elif (( IS_AMD == 1 || IS_ARM == 1 )); then
-        local max_freq=$(cat /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_max_freq)
-        local min_freq=$(cat /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_min_freq)
-        local target_freq=$(( min_freq + (max_freq - min_freq) * pct / 100 ))
 
-        if [ -w "$PERF_PATH" ]; then
-            echo "$target_freq" | tee "$PERF_PATH" > /dev/null
-        else
-            echo "${RED}Permission denied: Cannot write to $PERF_PATH${RESET}" >&2
-            exit 1
-        fi
+    elif (( IS_AMD == 1 || IS_ARM == 1 )) && [[ -n "${PERF_PATHS[*]}" ]]; then
+        local max_freq min_freq target_freq
+        max_freq=$(cat /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_max_freq)
+        min_freq=$(cat /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_min_freq)
+        target_freq=$(( min_freq + (max_freq - min_freq) * pct / 100 ))
+
+        for path in "${PERF_PATHS[@]}"; do
+            if [ -w "$path" ]; then
+                echo "$target_freq" | sudo tee "$path" > /dev/null
+            else
+                echo "${YELLOW}Warning: Permission denied to write $path; skipping.${RESET}" >&2
+            fi
+        done
+
         save_config
+    else
+        echo "${RED}Unsupported CPU or PERF_PATH not set correctly.${RESET}" >&2
+        exit 1
     fi
 }
 
@@ -371,6 +379,7 @@ start_monitoring_loop() {
 show_status() {
     CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
     PERF_PATH=""
+    PERF_PATHS=()
     TURBO_PATH=""
     IS_AMD=0
     IS_INTEL=0
@@ -387,54 +396,56 @@ show_status() {
             if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
-                PERF_PATH="/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq"
+                mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq -type f -name "scaling_max_freq" 2>/dev/null)
             fi
             ;;
         *)
             IS_ARM=1
-            PERF_PATH="/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq"
+            mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq -type f -name "scaling_max_freq" 2>/dev/null)
             ;;
     esac
 
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
         if ps -p "$PID" > /dev/null 2>&1; then
-echo "${CYAN}"
-echo "══════════════════════════════════════════════"
-echo "  PowerControl Status: RUNNING (PID $PID)    " 
-
+            echo "${CYAN}"
+            echo "══════════════════════════════════════════════"
+            echo "  PowerControl Status: RUNNING (PID $PID)    "
         else
             rm -f "$PID_FILE"
             rm -f "$RUN_FLAG"
-echo "${RED}"
-echo "══════════════════════════════════════════════"
-echo "        PowerControl Status: STOPPED        "
+            echo "${RED}"
+            echo "══════════════════════════════════════════════"
+            echo "        PowerControl Status: STOPPED        "
         fi
     else
-echo "${RED}"
-echo "══════════════════════════════════════════════"
-echo "        PowerControl Status: STOPPED       "
+        echo "${RED}"
+        echo "══════════════════════════════════════════════"
+        echo "        PowerControl Status: STOPPED       "
     fi
+
     temp_c=$(get_temp)
-echo ""
-echo "  CPU Temp: $temp_c°C          "
-echo "  Max Temp: $MAX_TEMP°C        "
-echo "  Min Temp: $MIN_TEMP°C        "
-echo "  Max CPU %: $MAX_PERF_PCT%    " 
-echo "  Min CPU %: $MIN_PERF_PCT%    "
-echo "  Hotzone: $HOTZONE°C          "
-echo "  Polling rate: ${CPU_POLL}s     "
-echo "  Ramp Up %: $RAMP_UP%         "
-echo "  Ramp Down %: $RAMP_DOWN%     "
+    echo ""
+    echo "  CPU Temp: $temp_c°C"
+    echo "  Max Temp: $MAX_TEMP°C"
+    echo "  Min Temp: $MIN_TEMP°C"
+    echo "  Max CPU %: $MAX_PERF_PCT%" 
+    echo "  Min CPU %: $MIN_PERF_PCT%"
+    echo "  Hotzone: $HOTZONE°C"
+    echo "  Polling rate: ${CPU_POLL}s"
+    echo "  Ramp Up %: $RAMP_UP%"
+    echo "  Ramp Down %: $RAMP_DOWN%"
 
-
-    if [ -f "$PERF_PATH" ]; then
+    if [[ -n "$PERF_PATH" && -f "$PERF_PATH" ]]; then
         current_val=$(cat "$PERF_PATH")
-        if [[ "$PERF_PATH" == *max_perf_pct ]]; then
-echo "  Current max_perf_pct: $current_val%"
-        else
-            echo "  Current max frequency: $((current_val / 1000)) MHz"
-        fi
+        echo "  Current max_perf_pct: $current_val%"
+    elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
+        echo "  Current max frequencies:"
+        for path in "${PERF_PATHS[@]}"; do
+            cur_val=$(cat "$path")
+            policy_name=$(basename "$(dirname "$path")")
+            echo "    $policy_name: $((cur_val / 1000)) MHz"
+        done
     else
         echo "  ${RED}max_perf_pct/frequency path not found.${RESET}"
     fi
@@ -443,81 +454,22 @@ echo "  Current max_perf_pct: $current_val%"
         turbo_val=$(cat "$TURBO_PATH")
         if [[ "$turbo_val" -eq 1 ]]; then
             echo "  Turbo Boost: Disabled"
-echo "═════════════════════════════════════════════${RESET}"
+            echo "═════════════════════════════════════════════${RESET}"
         else
             echo "  Turbo Boost: Enabled"
-echo "═════════════════════════════════════════════${RESET}"
+            echo "═════════════════════════════════════════════${RESET}"
         fi
     elif [ "$IS_AMD" -eq 1 ]; then
         echo "  Turbo Boost: Control unavailable via no_turbo path on AMD."
-echo "═════════════════════════════════════════════${RESET}"
+        echo "═════════════════════════════════════════════${RESET}"
     else
         echo "  Turbo Boost: Not supported on this platform."
-echo "═════════════════════════════════════════════${RESET}"
+        echo "═════════════════════════════════════════════${RESET}"
     fi
 
     echo
 }
 
-# display cpu temp in status
-if [ $# -eq 0 ]; then
-    show_status
-    exit 0
-fi
-
-stop_monitoring() {
-    if [ -n "$POWERCONTROL_STOPPING" ]; then
-        return
-    fi
-    POWERCONTROL_STOPPING=1
-
-    if [ ! -f "$PID_FILE" ]; then
-        return
-    fi
-
-    PID=$(cat "$PID_FILE")
-    if ps -p "$PID" > /dev/null 2>&1; then
-        echo "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') - Stopping PowerControl (PID $PID)...${RESET}"  | tee -a "$LOG_FILE"
-        rm -f "$RUN_FLAG"
-        kill "$PID"
-
-        for i in {1..10}; do
-            if ! ps -p "$PID" > /dev/null 2>&1; then
-                echo "PowerControl stopped."
-                rm -f "$PID_FILE"
-                return
-            fi
-            sleep 1
-        done
-        kill -9 "$PID"
-        rm -f "$PID_FILE"
-    else
-        rm -f "$PID_FILE"
-        rm -f "$RUN_FLAG"
-    fi
-}
-
-uninstall_script() {
-    if [ -z "$INSTALL_DIR" ]; then
-        echo "Error: INSTALL_DIR is not set."
-        exit 1
-    fi
-
-    local script="$INSTALL_DIR/Uninstall_ChromeOS_PowerControl.sh"
-
-    if [ -d "$INSTALL_DIR" ]; then
-        if [ -x "$script" ]; then
-            echo "Uninstalling ChromeOS PowerControl..."
-            sudo bash "$script"
-        else
-            echo "${RED}Uninstall script not found or not executable at: $script${RESET}"
-            exit 1
-        fi
-    else
-        echo "${RED}Installation directory not found: $INSTALL_DIR${RESET}"
-        exit 1
-    fi
-}
 
 show_help() {
 echo "${CYAN}"
@@ -551,11 +503,18 @@ echo "${RESET}"
 
 max_perf_pct() {
     if [ -z "$2" ]; then
-        if [ -f "$PERF_PATH" ]; then
+        if [[ -n "$PERF_PATH" && -f "$PERF_PATH" ]]; then
             current_pct=$(cat "$PERF_PATH")
             echo "Current max_perf_pct: $current_pct%"
+        elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
+            echo "Current scaling_max_freq per policy:"
+            for path in "${PERF_PATHS[@]}"; do
+                freq=$(cat "$path")
+                policy_name=$(basename "$(dirname "$path")")
+                echo "  $policy_name: $((freq / 1000)) MHz"
+            done
         else
-            echo "${RED}max_perf_pct path not found: $PERF_PATH${RESET}"
+            echo "${RED}No valid max_perf_pct or scaling_max_freq paths found.${RESET}"
             exit 1
         fi
     else
@@ -575,6 +534,7 @@ max_perf_pct() {
         set_max_perf_pct "$MAX_PERF_PCT"
     fi
 }
+
 
 case "$1" in
    start)

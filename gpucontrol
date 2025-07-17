@@ -231,7 +231,7 @@ case "$GPU_ARG" in
         if (( FREQ_KHZ > ORIGINAL_GPU_MAX_FREQ )); then
             echo ""
             echo "${RED}Error: Frequency exceeds max allowed.${RESET}"
-            echo """
+            echo ""
             exit 1
         fi
         echo ""

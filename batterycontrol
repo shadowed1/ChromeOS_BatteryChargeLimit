@@ -9,8 +9,27 @@ BOLD=$(tput bold)
 RESET=$(tput sgr0)
 INSTALL_DIR="@INSTALL_DIR@"
 CONFIG_FILE="$INSTALL_DIR/config.sh"
-BATTERY_PATH=$(find /sys/class/power_supply/ -type f -name capacity | grep -v "CROS_USBPD_CHARGER" | head -n1)
-STATUS_PATH="${BATTERY_PATH%/*}/status"
+BATTERY_STATUS_PATH="/var/log/power_manager/powerd.LATEST"
+
+get_battery_info() {
+    local line
+    line=$(tail -n1 "$BATTERY_STATUS_PATH")
+    
+    if [[ "$line" =~ On\ battery\ at\ ([0-9]+)% ]]; then
+        CHARGE="${BASH_REMATCH[1]}"
+    else
+        CHARGE=""
+    fi
+
+    if [[ "$line" == *"On battery at"* ]]; then
+        STATUS="Discharging"
+    elif [[ "$line" == *"line_power connected"* || "$line" == *"line_power online"* ]]; then
+        STATUS="Charging"
+    else
+        STATUS="Unknown"
+    fi
+}
+
 RUN_FLAG="$INSTALL_DIR/.batterycontrol_enabled"
 PID_FILE="$INSTALL_DIR/.batterycontrol_pid"
 LOG_FILE="/var/log/batterycontrol.log"
@@ -171,14 +190,12 @@ start_monitoring_loop() {
             last_reload_time=$now
         fi
 
-        if [ -f "$BATTERY_PATH" ]; then
-            CHARGE=$(cat "$BATTERY_PATH" 2>/dev/null)
-        else
+                get_battery_info
+        if [[ -z "$CHARGE" ]]; then
             sleep 10
             continue
         fi
 
-        STATUS=$(cat "$STATUS_PATH" 2>/dev/null)
         if [[ "$STATUS" == "Charging" ]]; then
             ACTIVE_PORT=$(detect_active_usbpd_port)
         else

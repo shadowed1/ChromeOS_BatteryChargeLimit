@@ -49,77 +49,6 @@ detect_cpu_type() {
     esac
 }
 
-detect_gpu_freq() {
-    GPU_FREQ_PATH=""
-    GPU_MAX_FREQ=""
-    # Xe
-    if [ -f "/sys/class/drm/card0/gt_max_freq_mhz" ]; then
-        GPU_FREQ_PATH="/sys/class/drm/card0/gt_max_freq_mhz"
-        GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
-        GPU_TYPE="intel"
-        return
-    fi
-  # Radeon
-if [ -f "/sys/class/drm/card0/device/pp_od_clk_voltage" ]; then
-    GPU_TYPE="amd"
-    PP_OD_FILE="/sys/class/drm/card0/device/pp_od_clk_voltage"
-
-    mapfile -t SCLK_LINES < <(grep -i '^sclk' "$PP_OD_FILE")
-
-    if [[ ${#SCLK_LINES[@]} -gt 0 ]]; then
-        MAX_MHZ=$(printf '%s\n' "${SCLK_LINES[@]}" | sed -n 's/.*\([0-9]\{1,\}\)[Mm][Hh][Zz].*/\1/p' | sort -nr | head -n1)
-        if [[ -n "$MAX_MHZ" ]]; then
-            GPU_MAX_FREQ="$MAX_MHZ"
-            AMD_SELECTED_SCLK_INDEX=$(printf '%s\n' "${SCLK_LINES[@]}" | grep -in "$MAX_MHZ" | head -n1 | cut -d':' -f1)
-            AMD_SELECTED_SCLK_INDEX=$((AMD_SELECTED_SCLK_INDEX - 1))
-        else
-            GPU_MAX_FREQ=0
-            AMD_SELECTED_SCLK_INDEX=0
-        fi
-    else
-        GPU_MAX_FREQ=0
-        AMD_SELECTED_SCLK_INDEX=0
-    fi
-    GPU_FREQ_PATH="$PP_OD_FILE"
-    return
-fi
-
-    # Mali
-for d in /sys/class/devfreq/*; do
-    if grep -qi 'mali' <<< "$d" || grep -qi 'gpu' <<< "$d"; then
-        if [ -f "$d/max_freq" ]; then
-            GPU_FREQ_PATH="$d/max_freq"
-            GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
-            GPU_TYPE="mali"
-            return
-        elif [ -f "$d/available_frequencies" ]; then
-            GPU_FREQ_PATH="$d/available_frequencies"
-            GPU_MAX_FREQ=$(tr ' ' '\n' < "$GPU_FREQ_PATH" | sort -nr | head -n1)
-            GPU_TYPE="mali"
-            return
-        fi
-    fi
-done
-
-    # Adreno
-    if [ -d "/sys/class/kgsl/kgsl-3d0" ]; then
-        if [ -f "/sys/class/kgsl/kgsl-3d0/max_gpuclk" ]; then
-            GPU_FREQ_PATH="/sys/class/kgsl/kgsl-3d0/max_gpuclk"
-            GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
-            GPU_TYPE="adreno"
-            return
-        elif [ -f "/sys/class/kgsl/kgsl-3d0/gpuclk" ]; then
-            GPU_FREQ_PATH="/sys/class/kgsl/kgsl-3d0/gpuclk"
-            GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
-            GPU_TYPE="adreno"
-            return
-        fi
-    fi
-    GPU_FREQ_PATH=""
-    GPU_MAX_FREQ=""
-    GPU_TYPE="unknown"
-}
-
 detect_backlight_path() {
     BACKLIGHT_BASE="/sys/class/backlight"
     BRIGHTNESS_PATH=""
@@ -224,6 +153,78 @@ for file in "${files[@]}"; do
     fi
     echo ""
 done
+
+detect_gpu_freq() {
+    GPU_FREQ_PATH=""
+    GPU_MAX_FREQ=""
+    # Xe
+    if [ -f "/sys/class/drm/card0/gt_max_freq_mhz" ]; then
+        GPU_FREQ_PATH="/sys/class/drm/card0/gt_max_freq_mhz"
+        GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
+        GPU_TYPE="intel"
+        return
+    fi
+  # Radeon
+if [ -f "/sys/class/drm/card0/device/pp_od_clk_voltage" ]; then
+    GPU_TYPE="amd"
+    PP_OD_FILE="/sys/class/drm/card0/device/pp_od_clk_voltage"
+
+    mapfile -t SCLK_LINES < <(grep -i '^sclk' "$PP_OD_FILE")
+
+    if [[ ${#SCLK_LINES[@]} -gt 0 ]]; then
+        MAX_MHZ=$(printf '%s\n' "${SCLK_LINES[@]}" | sed -n 's/.*\([0-9]\{1,\}\)[Mm][Hh][Zz].*/\1/p' | sort -nr | head -n1)
+        if [[ -n "$MAX_MHZ" ]]; then
+            GPU_MAX_FREQ="$MAX_MHZ"
+            AMD_SELECTED_SCLK_INDEX=$(printf '%s\n' "${SCLK_LINES[@]}" | grep -in "$MAX_MHZ" | head -n1 | cut -d':' -f1)
+            AMD_SELECTED_SCLK_INDEX=$((AMD_SELECTED_SCLK_INDEX - 1))
+        else
+            GPU_MAX_FREQ=0
+            AMD_SELECTED_SCLK_INDEX=0
+        fi
+    else
+        GPU_MAX_FREQ=0
+        AMD_SELECTED_SCLK_INDEX=0
+    fi
+    GPU_FREQ_PATH="$PP_OD_FILE"
+    return
+fi
+
+    # Mali
+for d in /sys/class/devfreq/*; do
+    if grep -qi 'mali' <<< "$d" || grep -qi 'gpu' <<< "$d"; then
+        if [ -f "$d/max_freq" ]; then
+            GPU_FREQ_PATH="$d/max_freq"
+            GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
+            GPU_TYPE="mali"
+            return
+        elif [ -f "$d/available_frequencies" ]; then
+            GPU_FREQ_PATH="$d/available_frequencies"
+            GPU_MAX_FREQ=$(tr ' ' '\n' < "$GPU_FREQ_PATH" | sort -nr | head -n1)
+            GPU_TYPE="mali"
+            return
+        fi
+    fi
+done
+
+    # Adreno
+    if [ -d "/sys/class/kgsl/kgsl-3d0" ]; then
+        if [ -f "/sys/class/kgsl/kgsl-3d0/max_gpuclk" ]; then
+            GPU_FREQ_PATH="/sys/class/kgsl/kgsl-3d0/max_gpuclk"
+            GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
+            GPU_TYPE="adreno"
+            return
+        elif [ -f "/sys/class/kgsl/kgsl-3d0/gpuclk" ]; then
+            GPU_FREQ_PATH="/sys/class/kgsl/kgsl-3d0/gpuclk"
+            GPU_MAX_FREQ=$(cat "$GPU_FREQ_PATH")
+            GPU_TYPE="adreno"
+            return
+        fi
+    fi
+    GPU_FREQ_PATH=""
+    GPU_MAX_FREQ=""
+    GPU_TYPE="unknown"
+}
+
 
 FAN_COUNT=$(sudo ectool pwmgetnumfans | awk -F= '{print $2}' | sed -e 's/ //g')
 

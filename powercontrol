@@ -240,16 +240,20 @@ set_max_perf_pct() {
         fi
 
     elif (( IS_AMD == 1 || IS_ARM == 1 )) && [[ -n "${PERF_PATHS[*]}" ]]; then
-        local max_freq min_freq target_freq
-        max_freq=$(cat /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_max_freq)
-        min_freq=$(cat /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_min_freq)
-        target_freq=$(( min_freq + (max_freq - min_freq) * pct / 100 ))
-
         for path in "${PERF_PATHS[@]}"; do
-            if [ -w "$path" ]; then
-                echo "$target_freq" | sudo tee "$path" > /dev/null
+            policy_dir=$(dirname "$path")
+            if [[ -f "$policy_dir/cpuinfo_max_freq" && -f "$policy_dir/cpuinfo_min_freq" ]]; then
+                max_freq=$(cat "$policy_dir/cpuinfo_max_freq")
+                min_freq=$(cat "$policy_dir/cpuinfo_min_freq")
+                target_freq=$(( min_freq + (max_freq - min_freq) * pct / 100 ))
+
+                if [ -w "$path" ]; then
+                    echo "$target_freq" | sudo tee "$path" > /dev/null
+                else
+                    echo "${YELLOW}Warning: Permission denied to write $path; skipping.${RESET}" >&2
+                fi
             else
-                echo "${YELLOW}Warning: Permission denied to write $path; skipping.${RESET}" >&2
+                echo "${YELLOW}Warning: Missing cpuinfo_*_freq for $path; skipping.${RESET}" >&2
             fi
         done
 
@@ -259,6 +263,7 @@ set_max_perf_pct() {
         exit 1
     fi
 }
+
 
 
 set_temp_threshold() {

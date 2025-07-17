@@ -13,7 +13,7 @@ BATTERY_STATUS_PATH="/var/log/power_manager/powerd.LATEST"
 
 get_battery_info() {
     local line
-    line=$(tail -n1 "$BATTERY_STATUS_PATH")
+    line=$(grep -E "On (battery|AC)|line_power (connected|online)" "$BATTERY_STATUS_PATH" | tail -n1)
 
     if [[ "$line" =~ On\ battery\ at\ ([0-9]+)% ]]; then
         CHARGE="${BASH_REMATCH[1]}"

@@ -14,21 +14,33 @@ BATTERY_STATUS_PATH="/var/log/power_manager/powerd.LATEST"
 get_battery_info() {
     local line
     line=$(tail -n1 "$BATTERY_STATUS_PATH")
-    
+
     if [[ "$line" =~ On\ battery\ at\ ([0-9]+)% ]]; then
         CHARGE="${BASH_REMATCH[1]}"
+        STATUS="Discharging"
+
+    elif [[ "$line" =~ On\ AC ]]; then
+        if [[ "$line" =~ battery\ at\ ([0-9]+)% ]]; then
+            CHARGE="${BASH_REMATCH[1]}"
+        else
+            CHARGE=""
+        fi
+        STATUS="Charging"
+
+    elif [[ "$line" == *"line_power connected"* || "$line" == *"line_power online"* ]]; then
+        if [[ "$line" =~ at\ ([0-9]+)% ]]; then
+            CHARGE="${BASH_REMATCH[1]}"
+        else
+            CHARGE=""
+        fi
+        STATUS="Charging"
+
     else
         CHARGE=""
-    fi
-
-    if [[ "$line" == *"On battery at"* ]]; then
-        STATUS="Discharging"
-    elif [[ "$line" == *"line_power connected"* || "$line" == *"line_power online"* ]]; then
-        STATUS="Charging"
-    else
         STATUS="Unknown"
     fi
 }
+
 
 RUN_FLAG="$INSTALL_DIR/.batterycontrol_enabled"
 PID_FILE="$INSTALL_DIR/.batterycontrol_pid"

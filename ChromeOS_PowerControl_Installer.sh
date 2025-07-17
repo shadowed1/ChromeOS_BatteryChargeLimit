@@ -18,28 +18,33 @@ detect_cpu_type() {
     IS_INTEL=0
     IS_AMD=0
     IS_ARM=0
+    PERF_PATH=""
+    PERF_PATHS=()
+    TURBO_PATH=""
+
     case "$CPU_VENDOR" in
         GenuineIntel)
             IS_INTEL=1
-            PERF_PATH="/sys/devices/system/cpu/intel_pstate/max_perf_pct"
-            TURBO_PATH="/sys/devices/system/cpu/intel_pstate/no_turbo"
+            if [ -f "/sys/devices/system/cpu/intel_pstate/max_perf_pct" ]; then
+                PERF_PATH="/sys/devices/system/cpu/intel_pstate/max_perf_pct"
+                TURBO_PATH="/sys/devices/system/cpu/intel_pstate/no_turbo"
+            fi
             ;;
         AuthenticAMD)
             IS_AMD=1
             if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
-                PERF_PATH="/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq"
+                PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
             fi
-            TURBO_PATH=""
             ;;
         *)
             IS_ARM=1
-            PERF_PATHS="(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)"
-            TURBO_PATH=""
+            PERF_PATHS=(/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq)
             ;;
     esac
 }
+
 detect_gpu_freq() {
     GPU_FREQ_PATH=""
     GPU_MAX_FREQ=""
@@ -239,6 +244,7 @@ echo ""
 
 echo "${CYAN}Detected CPU Vendor: $CPU_VENDOR"
 echo "PERF_PATH: $PERF_PATH"
+echo "PERF_PATHS: $PERF_PATHS"
 echo "TURBO_PATH: $TURBO_PATH"
 echo "$RESET"
 sudo chmod +x "$INSTALL_DIR/powercontrol" "$INSTALL_DIR/batterycontrol" "$INSTALL_DIR/fancontrol" "$INSTALL_DIR/gpucontrol" "$INSTALL_DIR/sleepcontrol" "$INSTALL_DIR/Uninstall_ChromeOS_PowerControl.sh" "$INSTALL_DIR/config.sh"
@@ -288,6 +294,7 @@ declare -a ordered_keys=(
   "AUDIO_DETECTION_BATTERY"
   "AUDIO_DETECTION_POWER"
   "PERF_PATH"
+  "PERF_PATHS"
   "TURBO_PATH"
   "ORIGINAL_GPU_MAX_FREQ"
   "PP_OD_FILE"
@@ -307,7 +314,7 @@ declare -A categories=(
   ["FanControl"]="MIN_FAN MAX_FAN FAN_MIN_TEMP FAN_MAX_TEMP STEP_UP STEP_DOWN FAN_POLL"
   ["GPUControl"]="GPU_MAX_FREQ"
   ["SleepControl"]="BATTERY_DELAY BATTERY_BACKLIGHT BATTERY_DIM_DELAY POWER_DELAY POWER_BACKLIGHT POWER_DIM_DELAY AUDIO_DETECTION_BATTERY AUDIO_DETECTION_POWER"
-  ["Platform Configuration"]="IS_AMD IS_INTEL IS_ARM PERF_PATH TURBO_PATH GPU_TYPE GPU_FREQ_PATH ORIGINAL_GPU_MAX_FREQ PP_OD_FILE AMD_SELECTED_SCLK_INDEX BACKLIGHT_NAME BRIGHTNESS_PATH MAX_BRIGHTNESS_PATH"
+  ["Platform Configuration"]="IS_AMD IS_INTEL IS_ARM PERF_PATH PERF_PATHS TURBO_PATH GPU_TYPE GPU_FREQ_PATH ORIGINAL_GPU_MAX_FREQ PP_OD_FILE AMD_SELECTED_SCLK_INDEX BACKLIGHT_NAME BRIGHTNESS_PATH MAX_BRIGHTNESS_PATH"
 )
 
 if [[ -z "${ORIGINAL_GPU_MAX_FREQ}" ]]; then ORIGINAL_GPU_MAX_FREQ=$GPU_MAX_FREQ; fi
@@ -363,6 +370,7 @@ declare -A defaults=(
   [AUDIO_DETECTION_BATTERY]=$AUDIO_DETECTION_BATTERY
   [AUDIO_DETECTION_POWER]=$AUDIO_DETECTION_POWER
   [PERF_PATH]=$PERF_PATH
+  [PERF_PATHS]=$PERF_PATHS
   [TURBO_PATH]=$TURBO_PATH
   [GPU_FREQ_PATH]=$GPU_FREQ_PATH
   [ORIGINAL_GPU_MAX_FREQ]=$GPU_MAX_FREQ

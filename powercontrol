@@ -51,7 +51,6 @@ fi
             else
                 mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
                 PERF_PATHS_STR="${PERF_PATHS[*]}"
-                PERF_PATHS_STR="${PERF_PATHS[*]}"
                 echo "PERF_PATHS=(${PERF_PATHS_STR})" >> "$CONFIG_FILE"
             fi
             ;;

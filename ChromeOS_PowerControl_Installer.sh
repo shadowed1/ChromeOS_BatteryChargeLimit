@@ -12,44 +12,6 @@ SHOW_BATTERYCONTROL_NOTICE=0
 SHOW_SLEEPCONTROL_NOTICE=0
 SHOW_GPUCONTROL_NOTICE=0
 
-
-detect_cpu_type() {
-    CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
-    IS_INTEL=0
-    IS_AMD=0
-    IS_ARM=0
-    PERF_PATH=""
-    PERF_PATHS=()
-    TURBO_PATH=""
-
-    case "$CPU_VENDOR" in
-        GenuineIntel)
-            IS_INTEL=1
-            if [ -f "/sys/devices/system/cpu/intel_pstate/max_perf_pct" ]; then
-                PERF_PATH="/sys/devices/system/cpu/intel_pstate/max_perf_pct"
-                TURBO_PATH="/sys/devices/system/cpu/intel_pstate/no_turbo"
-            fi
-            ;;
-        AuthenticAMD)
-            IS_AMD=1
-            if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
-                PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
-            else
-                mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-                PERF_PATHS_STR="${PERF_PATHS[*]}"
-                PERF_PATHS_STR="${PERF_PATHS[*]}"
-                echo "PERF_PATHS=(${PERF_PATHS_STR})" >> "$CONFIG_FILE"
-            fi
-            ;;
-        *)
-            IS_ARM=1
-            mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-            PERF_PATHS_STR="${PERF_PATHS[*]}"
-            echo "PERF_PATHS=(${PERF_PATHS_STR})" >> "$CONFIG_FILE"
-            ;;
-    esac
-}
-
 detect_backlight_path() {
     BACKLIGHT_BASE="/sys/class/backlight"
     BRIGHTNESS_PATH=""
@@ -154,6 +116,66 @@ for file in "${files[@]}"; do
     fi
     echo ""
 done
+
+write_perf_paths_to_config() {
+    {
+        echo ""
+        echo "# Auto-generated performance paths"
+        printf "PERF_PATHS=("
+        for path in "${PERF_PATHS[@]}"; do
+            printf "\"%s\" " "$path"
+        done
+        echo ")"
+    } >> "$CONFIG_FILE"
+}
+
+
+write_perf_paths_to_config() {
+    {
+        echo ""
+        printf "PERF_PATHS=("
+        for path in "${PERF_PATHS[@]}"; do
+            printf "\"%s\" " "$path"
+        done
+        echo ")"
+    } >> "$CONFIG_FILE"
+}
+
+
+ detect_cpu_type() {
+    CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
+    IS_INTEL=0
+    IS_AMD=0
+    IS_ARM=0
+    PERF_PATH=""
+    PERF_PATHS=()
+    TURBO_PATH=""
+
+    case "$CPU_VENDOR" in
+        GenuineIntel)
+            IS_INTEL=1
+            if [ -f "/sys/devices/system/cpu/intel_pstate/max_perf_pct" ]; then
+                PERF_PATH="/sys/devices/system/cpu/intel_pstate/max_perf_pct"
+                TURBO_PATH="/sys/devices/system/cpu/intel_pstate/no_turbo"
+            fi
+            ;;
+        AuthenticAMD)
+            IS_AMD=1
+            if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
+                PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
+            else
+                mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
+                write_perf_paths_to_config
+            fi
+            ;;
+        *)
+            IS_ARM=1
+            mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
+            write_perf_paths_to_config
+            ;;
+    esac
+}
+
 
 detect_gpu_freq() {
     GPU_FREQ_PATH=""

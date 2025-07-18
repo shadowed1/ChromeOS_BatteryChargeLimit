@@ -142,13 +142,11 @@ CONFIG_FILE="$INSTALL_DIR/config.sh"
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
                 mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-                write_perf_paths_to_config
             fi
             ;;
         *)
             IS_ARM=1
             mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-            write_perf_paths_to_config
             ;;
     esac
 }

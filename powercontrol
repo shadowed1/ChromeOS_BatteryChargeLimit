@@ -230,6 +230,9 @@ set_max_perf_pct() {
     local pct=$1
     load_config
 
+    if (( pct > 100 )); then pct=100; fi
+    if (( pct < 10 )); then pct=10; fi
+
     if (( IS_INTEL == 1 || IS_AMD == 1 )) && [[ "$PERF_PATH" == *max_perf_pct ]]; then
         if [ -w "$PERF_PATH" ]; then
             echo "$pct" | sudo tee "$PERF_PATH" > /dev/null
@@ -237,14 +240,37 @@ set_max_perf_pct() {
             echo "${RED}Permission denied: Cannot write to $PERF_PATH${RESET}" >&2
             exit 1
         fi
-
     elif (( IS_AMD == 1 || IS_ARM == 1 )) && [[ -n "${PERF_PATHS[*]}" ]]; then
         for path in "${PERF_PATHS[@]}"; do
             policy_dir=$(dirname "$path")
             if [[ -f "$policy_dir/cpuinfo_max_freq" && -f "$policy_dir/cpuinfo_min_freq" ]]; then
                 max_freq=$(cat "$policy_dir/cpuinfo_max_freq")
                 min_freq=$(cat "$policy_dir/cpuinfo_min_freq")
-                target_freq=$(( min_freq + (max_freq - min_freq) * pct / 100 ))
+
+                # Calculate ideal freq
+                if (( pct >= 100 )); then
+                    target_freq=$max_freq
+                elif (( pct <= 0 )); then
+                    target_freq=$min_freq
+                else
+                    target_freq=$(( min_freq + (max_freq - min_freq) * pct / 100 ))
+                fi
+
+                if [[ -f "$policy_dir/scaling_available_frequencies" ]]; then
+                    read -a available_freqs <<< "$(cat "$policy_dir/scaling_available_frequencies")"
+                    chosen_freq=${available_freqs[0]}
+                    for freq in "${available_freqs[@]}"; do
+                        if (( freq >= target_freq )); then
+                            chosen_freq=$freq
+                            break
+                        fi
+                        chosen_freq=$freq  # in case target is above all available, use highest
+                    done
+                    echo "[$(date)] $policy_dir: min=$min_freq max=$max_freq pct=$pct target=$target_freq chosen=$chosen_freq" >> /tmp/powercontrol_debug.log
+                    target_freq=$chosen_freq
+                else
+                    echo "[$(date)] $policy_dir: min=$min_freq max=$max_freq pct=$pct target=$target_freq (no available_frequencies)" >> /tmp/powercontrol_debug.log
+                fi
 
                 if [ -w "$path" ]; then
                     echo "$target_freq" | sudo tee "$path" > /dev/null
@@ -255,15 +281,12 @@ set_max_perf_pct() {
                 echo "${YELLOW}Warning: Missing cpuinfo_*_freq for $path; skipping.${RESET}" >&2
             fi
         done
-
         save_config
     else
         echo "${RED}Unsupported CPU or PERF_PATH not set correctly.${RESET}" >&2
         exit 1
     fi
 }
-
-
 
 set_temp_threshold() {
     if ! [[ "$1" =~ ^[0-9]+$ ]]; then

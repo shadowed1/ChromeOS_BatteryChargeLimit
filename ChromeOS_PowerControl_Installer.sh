@@ -35,16 +35,17 @@ detect_cpu_type() {
             if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
-                mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
+                mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
                 PERF_PATHS_STR="${PERF_PATHS[*]}"
-                echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
+                PERF_PATHS_STR="${PERF_PATHS[*]}"
+                echo "PERF_PATHS=(${PERF_PATHS_STR})" >> "$CONFIG_FILE"
             fi
             ;;
         *)
             IS_ARM=1
-            mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq')
+            mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
             PERF_PATHS_STR="${PERF_PATHS[*]}"
-            echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
+            echo "PERF_PATHS=(${PERF_PATHS_STR})" >> "$CONFIG_FILE"
             ;;
     esac
 }

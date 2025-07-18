@@ -119,18 +119,6 @@ done
 
 CONFIG_FILE="$INSTALL_DIR/config.sh"
 
-write_perf_paths_to_config() {
-    {
-        echo ""
-        echo "# Auto-generated performance paths"
-        printf "PERF_PATHS=("
-        for path in "${PERF_PATHS[@]}"; do
-            printf "\"%s\" " "$path"
-        done
-        echo ")"
-    } >> "$CONFIG_FILE"
-}
-
  detect_cpu_type() {
     CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
     IS_INTEL=0

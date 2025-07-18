@@ -27,6 +27,18 @@ if ! ( [[ -z "$1" ]] || [[ "$1" == "--h" || "$1" == "-h" || "$1" == "h" || "$1" 
     exit 1
 fi
 
+write_perf_paths_to_config() {
+    {
+        echo ""
+        printf "PERF_PATHS=("
+        for path in "${PERF_PATHS[@]}"; do
+            printf "\"%s\" " "$path"
+        done
+        echo ")"
+    } >> "$CONFIG_FILE"
+}
+
+
  detect_cpu_type() {
     CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
     IS_INTEL=0
@@ -50,15 +62,13 @@ fi
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
                 mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-                PERF_PATHS_STR="${PERF_PATHS[*]}"
-                echo "PERF_PATHS=(${PERF_PATHS_STR})" >> "$CONFIG_FILE"
+                write_perf_paths_to_config
             fi
             ;;
         *)
             IS_ARM=1
             mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-            PERF_PATHS_STR="${PERF_PATHS[*]}"
-            echo "PERF_PATHS=(${PERF_PATHS_STR})" >> "$CONFIG_FILE"
+            write_perf_paths_to_config
             ;;
     esac
 }

@@ -411,7 +411,7 @@ fi
 
 for category in "${ordered_categories[@]}"; do
   echo "# --- ${category} ---" >> "$CONFIG_FILE"
- for key in ${categories[$category]}; do
+  for key in ${categories[$category]}; do
     if [ -n "${!key+x}" ]; then
         if declare -p "$key" 2>/dev/null | grep -q 'declare \-a'; then
             eval "arr=(\"\${${key}[@]}\")"
@@ -428,6 +428,7 @@ for category in "${ordered_categories[@]}"; do
         val="${defaults[$key]}"
         echo "$key=$val" >> "$CONFIG_FILE"
     fi
+  done
 done
 echo "${GREEN}${BOLD}Installing to: $INSTALL_DIR $RESET"
 echo ""

@@ -436,11 +436,6 @@ start_monitoring_loop() {
     rm -f "$PID_FILE"
 }
 
-
-    echo "${YELLOW}PowerControl stopped.${RESET}" | tee -a "$LOG_FILE"
-    rm -f "$PID_FILE"
-}
-
 show_status() {
     CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
     PERF_PATH=""

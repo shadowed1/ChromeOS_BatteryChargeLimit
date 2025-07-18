@@ -221,31 +221,27 @@ if ! [[ "$REQUESTED_FREQ" =~ ^[0-9]+$ ]]; then
 fi
 
 case "$GPU_ARG" in
-    intel|mali|adreno)
-        UNIT="kHz"
-        [[ "$GPU_ARG" == "intel" ]] && UNIT="MHz"
-        FREQ_KHZ=$REQUESTED_FREQ
-        [[ "$FREQ_KHZ" -lt 10000 && "$UNIT" == "kHz" ]] && FREQ_KHZ=$((REQUESTED_FREQ * 1000))
-
-        if (( FREQ_KHZ > ORIGINAL_GPU_MAX_FREQ )); then
-            echo ""
-            echo "${RED}Error: Frequency exceeds max allowed.${RESET}"
-            echo ""
-            exit 1
-        fi
-        echo ""
-        echo "$FREQ_KHZ" | sudo tee "$GPU_FREQ_PATH" > /dev/null
-        echo "${GREEN}$GPU_ARG GPU frequency set to $FREQ_KHZ $UNIT${RESET}" | tee -a "$LOG_FILE"
-        GPU_MAX_FREQ="$REQUESTED_FREQ"
-        echo ""
-        save_config
+    intel)
+        FREQ_KHZ="$REQUESTED_FREQ"
+        UNIT="MHz"
         ;;
+
+    mali|adreno)
+        UNIT="kHz"
+        if (( REQUESTED_FREQ > 5000 )); then
+            echo "${YELLOW}Note: You entered ${REQUESTED_FREQ}, assuming MHz. If you meant kHz, divide by 1000.${RESET}"
+        fi
+        FREQ_KHZ=$((REQUESTED_FREQ * 1000))
+        ;;
+
     amd)
         amd_set_max_freq "$REQUESTED_FREQ"
         echo ""
         echo "${GREEN}AMD GPU frequency set to $REQUESTED_FREQ MHz${RESET}" | tee -a "$LOG_FILE"
         echo ""
+        exit 0
         ;;
+
     *)
         echo ""
         echo "${RED}Unsupported GPU type '$GPU_ARG'.${RESET}"
@@ -254,5 +250,20 @@ case "$GPU_ARG" in
         exit 1
         ;;
 esac
+
+if (( FREQ_KHZ > ORIGINAL_GPU_MAX_FREQ )); then
+    echo ""
+    echo "${RED}Error: Frequency exceeds max allowed ($ORIGINAL_GPU_MAX_FREQ kHz).${RESET}"
+    echo ""
+    exit 1
+fi
+
+echo ""
+echo "$FREQ_KHZ" | sudo tee "$GPU_FREQ_PATH" > /dev/null
+echo "${GREEN}$GPU_ARG GPU frequency set to $FREQ_KHZ $UNIT${RESET}" | tee -a "$LOG_FILE"
+GPU_MAX_FREQ="$REQUESTED_FREQ"
+echo ""
+save_config
+
 
 exit 0

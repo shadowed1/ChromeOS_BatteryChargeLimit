@@ -27,18 +27,6 @@ if ! ( [[ -z "$1" ]] || [[ "$1" == "--h" || "$1" == "-h" || "$1" == "h" || "$1" 
     exit 1
 fi
 
-write_perf_paths_to_config() {
-    {
-        echo ""
-        printf "PERF_PATHS=("
-        for path in "${PERF_PATHS[@]}"; do
-            printf "\"%s\" " "$path"
-        done
-        echo ")"
-    } >> "$CONFIG_FILE"
-}
-
-
  detect_cpu_type() {
     CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
     IS_INTEL=0
@@ -62,13 +50,11 @@ write_perf_paths_to_config() {
                 PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
             else
                 mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-                write_perf_paths_to_config
             fi
             ;;
         *)
             IS_ARM=1
             mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq/ -type f -name 'scaling_max_freq' 2>/dev/null)
-            write_perf_paths_to_config
             ;;
     esac
 }
@@ -357,6 +343,26 @@ start_monitoring_loop() {
     cooldown_mode=false
     last_pct=0
 
+    set_all_perf_pct() {
+        local val="$1"
+        for path in "${PERF_PATHS[@]}"; do
+            if [ -w "$path" ]; then
+                current_val=$(cat "$path" 2>/dev/null || echo 0)
+                if [ "$current_val" != "$val" ]; then
+                    echo "$val" > "$path"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - Set $path to $val" >> "$LOG_FILE"
+                fi
+            fi
+        done
+        if [ -n "$PERF_PATH" ] && [ -w "$PERF_PATH" ]; then
+            current_val=$(cat "$PERF_PATH" 2>/dev/null || echo 0)
+            if [ "$current_val" != "$val" ]; then
+                echo "$val" > "$PERF_PATH"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - Set $PERF_PATH to $val" >> "$LOG_FILE"
+            fi
+        fi
+    }
+
     while [ -f "$RUN_FLAG" ]; do
         now=$(date +%s)
         if (( now - last_reload_time >= 10 )); then
@@ -378,9 +384,7 @@ start_monitoring_loop() {
             continue
         fi
 
-        current_pct=$(cat "$PERF_PATH" 2>/dev/null || echo "0")
-
-                if (( temp_c <= min_temp_c )); then
+        if (( temp_c <= min_temp_c )); then
             target_pct=$max_perf_pct
         elif (( temp_c < HOTZONE )); then
             delta_c=$((HOTZONE - min_temp_c))
@@ -388,8 +392,8 @@ start_monitoring_loop() {
             if (( delta_c > 0 && temp_offset > 0 )); then
                 reduction=$(( (max_perf_pct - min_perf_pct) * temp_offset / (2 * delta_c) ))
                 target_pct=$(( max_perf_pct - reduction ))
-                if (( target_pct >= max_perf_pct )); then target_pct=$((max_perf_pct - 1)); fi
-                if (( target_pct < min_perf_pct )); then target_pct=$min_perf_pct; fi
+                (( target_pct >= max_perf_pct )) && target_pct=$((max_perf_pct - 1))
+                (( target_pct < min_perf_pct )) && target_pct=$min_perf_pct
             else
                 target_pct=$((max_perf_pct - 1))
             fi
@@ -400,8 +404,8 @@ start_monitoring_loop() {
                 reduction_hotzone=$(( (max_perf_pct - min_perf_pct) / 2 ))
                 reduction=$(( reduction_hotzone + ((max_perf_pct - min_perf_pct) * temp_offset / (2 * delta_c)) ))
                 target_pct=$(( max_perf_pct - reduction ))
-                if (( target_pct >= max_perf_pct )); then target_pct=$((max_perf_pct - 1)); fi
-                if (( target_pct < min_perf_pct )); then target_pct=$min_perf_pct; fi
+                (( target_pct >= max_perf_pct )) && target_pct=$((max_perf_pct - 1))
+                (( target_pct < min_perf_pct )) && target_pct=$min_perf_pct
             else
                 target_pct=$min_perf_pct
             fi
@@ -412,26 +416,26 @@ start_monitoring_loop() {
         if (( last_pct < 1 )); then
             pct=$target_pct
         elif (( target_pct > last_pct )); then
-            # Ramp up slowly
             pct=$(( last_pct + ramp_up ))
-            if (( pct > target_pct )); then pct=$target_pct; fi
+            (( pct > target_pct )) && pct=$target_pct
         elif (( target_pct < last_pct )); then
-            # Ramp down quickly
             pct=$(( last_pct - ramp_down ))
-            if (( pct < target_pct )); then pct=$target_pct; fi
+            (( pct < target_pct )) && pct=$target_pct
         else
             pct=$last_pct
         fi
 
         last_pct=$pct
-        if [[ "$current_pct" != "$pct" ]]; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - CPU ${temp_c}°C -> Clockspeed ${pct}%" >> "$LOG_FILE"
-            set_max_perf_pct "$pct"
-        fi
+
+        set_all_perf_pct "$pct"
 
         sleep "$CPU_POLL"
-
     done
+
+    echo "${YELLOW}PowerControl stopped.${RESET}" | tee -a "$LOG_FILE"
+    rm -f "$PID_FILE"
+}
+
 
     echo "${YELLOW}PowerControl stopped.${RESET}" | tee -a "$LOG_FILE"
     rm -f "$PID_FILE"

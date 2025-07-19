@@ -232,19 +232,17 @@ set_max_perf_pct() {
                 if [[ -f "$policy_dir/scaling_available_frequencies" ]]; then
                     read -a available_freqs <<< "$(cat "$policy_dir/scaling_available_frequencies")"
                     chosen_freq=""
-                        for freq in "${available_freqs[@]}"; do
-                            if (( freq >= target_freq )); then
-                                chosen_freq=$freq
-                                break
-                            fi
-                        done
-                        
-                        if [[ -z "$chosen_freq" ]]; then
-                            chosen_freq=${available_freqs[-1]}
+                    for freq in "${available_freqs[@]}"; do
+                        if (( freq >= target_freq )); then
+                            chosen_freq=$freq
+                            break
                         fi
-
-                        chosen_freq=$freq
                     done
+
+                    if [[ -z "$chosen_freq" ]]; then
+                        chosen_freq=${available_freqs[-1]}
+                    fi
+
                     echo "[$(date)] $policy_dir: min=$min_freq max=$max_freq pct=$pct target=$target_freq chosen=$chosen_freq" >> /tmp/powercontrol_debug.log
                     target_freq=$chosen_freq
                 else
@@ -266,6 +264,7 @@ set_max_perf_pct() {
         exit 1
     fi
 }
+
 
 set_temp_threshold() {
     if ! [[ "$1" =~ ^[0-9]+$ ]]; then

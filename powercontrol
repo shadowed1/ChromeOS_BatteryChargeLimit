@@ -221,7 +221,7 @@ set_max_perf_pct() {
             echo "${RED}Permission denied: Cannot write to $PERF_PATH${RESET}" >&2
             exit 1
         fi
-    elif (( IS_AMD == 1 || IS_ARM == 1 )) && [[ -n ${PERF_PATHS[@]}" ]]; then
+    elif (( IS_AMD == 1 || IS_ARM == 1 )) && [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
         for path in "${PERF_PATHS[@]}"; do
             policy_dir=$(dirname "$path")
             if [[ -f "$policy_dir/cpuinfo_max_freq" && -f "$policy_dir/cpuinfo_min_freq" ]]; then
@@ -250,7 +250,7 @@ set_max_perf_pct() {
                         chosen_freq=${available_freqs[-1]}
                     fi
 
-                    echo "[$(date)] $policy_dir: min=$min_freq max=$max_freq pct=$pct target=$target_freq chosen=$chosen_freq" >> /tmp/powercontrol_debug.log
+                echo "[$(date)] $policy_dir: min=$min_freq max=$max_freq pct=$pct target=$target_freq chosen=$chosen_freq" >> "/tmp/powercontrol_debug.log"
                     target_freq=$chosen_freq
                 else
                     echo "[$(date)] $policy_dir: min=$min_freq max=$max_freq pct=$pct target=$target_freq (no available_frequencies)" >> /tmp/powercontrol_debug.log

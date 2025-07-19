@@ -88,6 +88,16 @@ validate_config() {
     if [[ -z "$RAMP_DOWN" ]]; then RAMP_DOWN=$DEFAULT_RAMP_DOWN; fi
     if [[ -z "$CPU_POLL" ]]; then CPU_POLL=$DEFAULT_CPU_POLL; fi
 
+    if (( IS_ARM == 1 && MAX_TEMP > 75 )); then
+        echo "ARM CPU detected: limiting MAX_TEMP to 75°C."
+        MAX_TEMP=80
+    fi
+
+     if (( IS_ARM == 1 && HOTZONE > 70 )); then
+        echo "ARM CPU detected: limiting HOTZONE to 70°C."
+        HOTZONE=70
+    fi
+
     if (( MAX_TEMP > MAX_TEMP_LIMIT )); then
         echo "Warning: MAX_TEMP exceeds limit ($MAX_TEMP_LIMIT), resetting."
         MAX_TEMP=$DEFAULT_MAX_TEMP
@@ -344,26 +354,6 @@ start_monitoring_loop() {
     cooldown_mode=false
     last_pct=0
 
-    set_all_perf_pct() {
-        local val="$1"
-        for path in "${PERF_PATHS[@]}"; do
-            if [ -w "$path" ]; then
-                current_val=$(cat "$path" 2>/dev/null || echo 0)
-                if [ "$current_val" != "$val" ]; then
-                    echo "$val" > "$path"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - Set $path to $val" >> "$LOG_FILE"
-                fi
-            fi
-        done
-        if [ -n "$PERF_PATH" ] && [ -w "$PERF_PATH" ]; then
-            current_val=$(cat "$PERF_PATH" 2>/dev/null || echo 0)
-            if [ "$current_val" != "$val" ]; then
-                echo "$val" > "$PERF_PATH"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - Set $PERF_PATH to $val" >> "$LOG_FILE"
-            fi
-        fi
-    }
-
     while [ -f "$RUN_FLAG" ]; do
         now=$(date +%s)
         if (( now - last_reload_time >= 10 )); then
@@ -428,7 +418,7 @@ start_monitoring_loop() {
 
         last_pct=$pct
 
-        set_all_perf_pct "$pct"
+        set_max_perf_pct "$pct"
 
         sleep "$CPU_POLL"
     done

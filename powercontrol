@@ -465,7 +465,7 @@ show_status() {
         echo "  Current max_perf_pct: $current_val%"
     elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
         echo "  Current max frequencies:"
-        for path in "${PERF_PATHS[*]}"; do
+        for path in "${PERF_PATHS[@]}"; do
             cur_val=$(cat "$path")
             policy_name=$(basename "$(dirname "$path")")
             echo "  $policy_name: $((cur_val / 1000)) MHz"

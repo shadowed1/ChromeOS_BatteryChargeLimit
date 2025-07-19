@@ -181,7 +181,7 @@ save_config() {
     sed -i "s/^CPU_POLL=.*/CPU_POLL=$CPU_POLL/" "$CONFIG_FILE" || echo "CPU_POLL=$CPU_POLL" >> "$CONFIG_FILE"
 
     if [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
-        PERF_PATHS_STR="${PERF_PATHS[*]}"
+        PERF_PATHS_STR="${PERF_PATHS[@]}"
         sed -i "s|^PERF_PATHS=.*|PERF_PATHS=\"$PERF_PATHS_STR\"|" "$CONFIG_FILE" || echo "PERF_PATHS=\"$PERF_PATHS_STR\"" >> "$CONFIG_FILE"
     fi
 
@@ -221,7 +221,7 @@ set_max_perf_pct() {
             echo "${RED}Permission denied: Cannot write to $PERF_PATH${RESET}" >&2
             exit 1
         fi
-    elif (( IS_AMD == 1 || IS_ARM == 1 )) && [[ -n "${PERF_PATHS[*]}" ]]; then
+    elif (( IS_AMD == 1 || IS_ARM == 1 )) && [[ -n ${PERF_PATHS[@]}" ]]; then
         for path in "${PERF_PATHS[@]}"; do
             policy_dir=$(dirname "$path")
             if [[ -f "$policy_dir/cpuinfo_max_freq" && -f "$policy_dir/cpuinfo_min_freq" ]]; then
@@ -427,13 +427,7 @@ start_monitoring_loop() {
 
 show_status() {
     detect_cpu_type
-    CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
-    PERF_PATH=""
-    PERF_PATHS=()
-    TURBO_PATH=""
-    IS_AMD=0
-    IS_INTEL=0
-    IS_ARM=0
+    echo "  DEBUG PERF_PATHS: ${PERF_PATHS[*]}"
 
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
@@ -469,7 +463,7 @@ show_status() {
    if [[ "$IS_INTEL" -eq 1 || "$IS_AMD" -eq 1 ]] && [[ "$PERF_PATH" == *max_perf_pct ]]; then
         current_val=$(cat "$PERF_PATH")
         echo "  Current max_perf_pct: $current_val%"
-    elif [[ ${PERF_PATHS[*]} -gt 0 ]]; then
+    elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
         echo "  Current max frequencies:"
         for path in "${PERF_PATHS[*]}"; do
             cur_val=$(cat "$path")

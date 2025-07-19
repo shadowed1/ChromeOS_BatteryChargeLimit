@@ -466,7 +466,7 @@ show_status() {
     echo "  Ramp Up %: $RAMP_UP%"
     echo "  Ramp Down %: $RAMP_DOWN%"
 
-    if [[ -n "$PERF_PATH" && -f "$PERF_PATH" ]]; then
+   if [[ "$IS_INTEL" -eq 1 || "$IS_AMD" -eq 1 ]] && [[ "$PERF_PATH" == *max_perf_pct ]]; then
         current_val=$(cat "$PERF_PATH")
         echo "  Current max_perf_pct: $current_val%"
     elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
@@ -477,8 +477,9 @@ show_status() {
             echo "  $policy_name: $((cur_val / 1000)) MHz"
         done
     else
-        echo "  ${RESET}${RED}max_perf_pct_frequency path not found.${RESET}${CYAN}"
+        echo "  ${RED}No performance paths found.${RESET}"
     fi
+
 
     if [ "$IS_INTEL" -eq 1 ] && [ -f "$TURBO_PATH" ]; then
         turbo_val=$(cat "$TURBO_PATH")
@@ -591,21 +592,20 @@ echo "${RESET}"
 }
 
 max_perf_pct() {
-    if [ -z "$2" ]; then
-        if [[ -n "$PERF_PATH" && -f "$PERF_PATH" ]]; then
-            current_pct=$(cat "$PERF_PATH")
-            echo "Current max_perf_pct: $current_pct%"
-        elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
-            echo "Current scaling_max_freq per policy:"
-            for path in "${PERF_PATHS[@]}"; do
-                freq=$(cat "$path")
-                policy_name=$(basename "$(dirname "$path")")
-                echo "  $policy_name: $((freq / 1000)) MHz"
-            done
-        else
-            echo "${RED}No valid max_perf_pct or scaling_max_freq paths found.${RESET}"
-            exit 1
-        fi
+   if [[ "$IS_INTEL" -eq 1 || "$IS_AMD" -eq 1 ]] && [[ "$PERF_PATH" == *max_perf_pct ]]; then
+        current_val=$(cat "$PERF_PATH")
+        echo "  Current max_perf_pct: $current_val%"
+    elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
+        echo "  Current max frequencies:"
+        for path in "${PERF_PATHS[@]}"; do
+            cur_val=$(cat "$path")
+            policy_name=$(basename "$(dirname "$path")")
+            echo "  $policy_name: $((cur_val / 1000)) MHz"
+        done
+    else
+        echo "  ${RED}No performance paths found.${RESET}"
+    fi
+
     else
         if ! [[ "$2" =~ ^[0-9]+$ ]]; then
             echo "${RED}Error: max_perf_pct value must be an integer.${RESET}"

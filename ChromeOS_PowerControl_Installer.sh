@@ -249,7 +249,7 @@ echo ""
 
 echo "${CYAN}Detected CPU Vendor: $CPU_VENDOR"
 echo "PERF_PATH: $PERF_PATH"
-echo "PERF_PATHS: $PERF_PATHS"
+echo "PERF_PATHS: ${PERF_PATHS[*]}"
 echo "TURBO_PATH: $TURBO_PATH"
 echo "$RESET"
 sudo chmod +x "$INSTALL_DIR/powercontrol" "$INSTALL_DIR/batterycontrol" "$INSTALL_DIR/fancontrol" "$INSTALL_DIR/gpucontrol" "$INSTALL_DIR/sleepcontrol" "$INSTALL_DIR/Uninstall_ChromeOS_PowerControl.sh" "$INSTALL_DIR/config.sh"

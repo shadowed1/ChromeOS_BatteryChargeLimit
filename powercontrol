@@ -15,7 +15,7 @@ PID_FILE="$INSTALL_DIR/.powercontrol_pid"
 VERSION_FILE="$INSTALL_DIR/version"
 CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
 PERF_PATH=""
-PERF_PATHS=""
+PERF_PATHS=()
 TURBO_PATH=""
 IS_AMD=0
 IS_INTEL=0
@@ -78,30 +78,7 @@ fi
     RAMP_DOWN=""
     CPU_POLL=""
 
-
-load_config() {
-    if [ -f "$CONFIG_FILE" ]; then
-        source "$CONFIG_FILE"
-        if [[ -n "$PERF_PATHS" ]]; then
-            IFS=' ' read -r -a PERF_PATHS <<< "$PERF_PATHS"
-        fi
-    else
-        echo "Creating default configuration..."
-        MIN_TEMP=${MIN_TEMP:-$DEFAULT_MIN_TEMP}
-        MAX_TEMP=${MAX_TEMP:-$DEFAULT_MAX_TEMP}
-        MIN_PERF_PCT=${MIN_PERF_PCT:-$DEFAULT_MIN_PERF_PCT}
-        MAX_PERF_PCT=${MAX_PERF_PCT:-$DEFAULT_MAX_PERF_PCT}
-        HOTZONE=${HOTZONE:-$DEFAULT_HOTZONE}
-        RAMP_UP=${RAMP_UP:-$DEFAULT_RAMP_UP}
-        RAMP_DOWN=${RAMP_DOWN:-$DEFAULT_RAMP_DOWN}
-        CPU_POLL=${CPU_POLL:-$DEFAULT_CPU_POLL}
-        validate_config
-    fi
-}
-
-
 validate_config() {
-    # Set defaults if empty
     if [[ -z "$MAX_TEMP" ]]; then MAX_TEMP=$DEFAULT_MAX_TEMP; fi
     if [[ -z "$MIN_TEMP" ]]; then MIN_TEMP=$DEFAULT_MIN_TEMP; fi
     if [[ -z "$MAX_PERF_PCT" ]]; then MAX_PERF_PCT=$DEFAULT_MAX_PERF_PCT; fi
@@ -109,9 +86,8 @@ validate_config() {
     if [[ -z "$HOTZONE" ]]; then HOTZONE=$DEFAULT_HOTZONE; fi
     if [[ -z "$RAMP_UP" ]]; then RAMP_UP=$DEFAULT_RAMP_UP; fi
     if [[ -z "$RAMP_DOWN" ]]; then RAMP_DOWN=$DEFAULT_RAMP_DOWN; fi
-    if [[ -z "$CPU_POLL" ]]; then CPU_POLL=$DEFAULT_INTERVAL; fi
+    if [[ -z "$CPU_POLL" ]]; then CPU_POLL=$DEFAULT_CPU_POLL; fi
 
-    # Clamp temps to limits
     if (( MAX_TEMP > MAX_TEMP_LIMIT )); then
         echo "Warning: MAX_TEMP exceeds limit ($MAX_TEMP_LIMIT), resetting."
         MAX_TEMP=$DEFAULT_MAX_TEMP
@@ -168,7 +144,6 @@ validate_config() {
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
-        # Reconstruct PERF_PATHS as an array if it was saved as a space-separated string
         if [[ -n "$PERF_PATHS" ]]; then
             IFS=' ' read -r -a PERF_PATHS <<< "$PERF_PATHS"
         fi
@@ -225,7 +200,6 @@ load_config
     fi
 }
 
-
 set_max_perf_pct() {
     local pct=$1
     load_config
@@ -247,7 +221,6 @@ set_max_perf_pct() {
                 max_freq=$(cat "$policy_dir/cpuinfo_max_freq")
                 min_freq=$(cat "$policy_dir/cpuinfo_min_freq")
 
-                # Calculate ideal freq
                 if (( pct >= 100 )); then
                     target_freq=$max_freq
                 elif (( pct <= 0 )); then
@@ -468,26 +441,6 @@ show_status() {
     IS_INTEL=0
     IS_ARM=0
 
-    case "$CPU_VENDOR" in
-        GenuineIntel)
-            IS_INTEL=1
-            PERF_PATH="/sys/devices/system/cpu/intel_pstate/max_perf_pct"
-            TURBO_PATH="/sys/devices/system/cpu/intel_pstate/no_turbo"
-            ;;
-        AuthenticAMD)
-            IS_AMD=1
-            if [ -f "/sys/devices/system/cpu/amd_pstate/max_perf_pct" ]; then
-                PERF_PATH="/sys/devices/system/cpu/amd_pstate/max_perf_pct"
-            else
-                mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq -type f -name "scaling_max_freq" 2>/dev/null)
-            fi
-            ;;
-        *)
-            IS_ARM=1
-            mapfile -t PERF_PATHS < <(find /sys/devices/system/cpu/cpufreq -type f -name "scaling_max_freq" 2>/dev/null)
-            ;;
-    esac
-
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
         if ps -p "$PID" > /dev/null 2>&1; then
@@ -690,7 +643,6 @@ case "$1" in
 
     LOG_FILE="/var/log/powercontrol.log"
 
-    # Truncate log if > 32KB
     if [ -f "$LOG_FILE" ] && [ "$(stat -c%s "$LOG_FILE")" -gt 32768 ]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Truncated log file (exceeded 32KB)" > "$LOG_FILE"
     fi

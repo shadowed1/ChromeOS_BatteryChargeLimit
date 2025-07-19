@@ -62,7 +62,7 @@ fi
     DEFAULT_HOTZONE=80
     DEFAULT_MIN_TEMP=60
     DEFAULT_MAX_TEMP=87
-    DEFAULT_MIN_PERF_PCT=40
+    DEFAULT_MIN_PERF_PCT=10
     DEFAULT_MAX_PERF_PCT=100
     DEFAULT_RAMP_UP=15
     DEFAULT_RAMP_DOWN=20
@@ -88,14 +88,12 @@ validate_config() {
     if [[ -z "$RAMP_DOWN" ]]; then RAMP_DOWN=$DEFAULT_RAMP_DOWN; fi
     if [[ -z "$CPU_POLL" ]]; then CPU_POLL=$DEFAULT_CPU_POLL; fi
 
-    if (( IS_ARM == 1 && MAX_TEMP > 75 )); then
-        echo "ARM CPU detected: limiting MAX_TEMP to 75°C."
-        MAX_TEMP=80
+    if (( IS_ARM == 1 && MAX_TEMP > 77 )); then
+        MAX_TEMP=77
     fi
 
-     if (( IS_ARM == 1 && HOTZONE > 70 )); then
-        echo "ARM CPU detected: limiting HOTZONE to 70°C."
-        HOTZONE=70
+     if (( IS_ARM == 1 && HOTZONE > 71 )); then
+        HOTZONE=71
     fi
 
     if (( MAX_TEMP > MAX_TEMP_LIMIT )); then

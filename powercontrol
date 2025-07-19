@@ -426,6 +426,7 @@ start_monitoring_loop() {
 }
 
 show_status() {
+    detect_cpu_type
     CPU_VENDOR=$(grep -m1 'vendor_id' /proc/cpuinfo | awk '{print $3}' || echo "unknown")
     PERF_PATH=""
     PERF_PATHS=()
@@ -476,7 +477,7 @@ show_status() {
             echo "  $policy_name: $((cur_val / 1000)) MHz"
         done
     else
-        echo "  ${RED}max_perf_pct_frequency path not found.${RESET}"
+        echo "  ${RESET}${RED}max_perf_pct_frequency path not found.${RESET}${CYAN}"
     fi
 
     if [ "$IS_INTEL" -eq 1 ] && [ -f "$TURBO_PATH" ]; then
@@ -499,7 +500,6 @@ show_status() {
     echo
 }
 
-# display cpu temp in status
 if [ $# -eq 0 ]; then
     show_status
     exit 0

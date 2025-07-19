@@ -111,7 +111,6 @@ validate_config() {
         HOTZONE=90
     fi
 
-    # Clamp perf pct to [10..100]
     if (( MIN_PERF_PCT < 10 )); then
         echo "Warning: MIN_PERF_PCT below 10, resetting."
         MIN_PERF_PCT=10
@@ -264,6 +263,7 @@ set_max_perf_pct() {
         exit 1
     fi
 }
+
 
 
 set_temp_threshold() {
@@ -485,10 +485,10 @@ show_status() {
         for path in "${PERF_PATHS[@]}"; do
             cur_val=$(cat "$path")
             policy_name=$(basename "$(dirname "$path")")
-            echo "    $policy_name: $((cur_val / 1000)) MHz"
+            echo "  $policy_name: $((cur_val / 1000)) MHz"
         done
     else
-        echo "  ${RED}max_perf_pct/frequency path not found.${RESET}"
+        echo "  ${RED}max_perf_pct_frequency path not found.${RESET}"
     fi
 
     if [ "$IS_INTEL" -eq 1 ] && [ -f "$TURBO_PATH" ]; then

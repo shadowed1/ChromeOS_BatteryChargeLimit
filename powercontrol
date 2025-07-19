@@ -592,20 +592,20 @@ echo "${RESET}"
 }
 
 max_perf_pct() {
-   if [[ "$IS_INTEL" -eq 1 || "$IS_AMD" -eq 1 ]] && [[ "$PERF_PATH" == *max_perf_pct ]]; then
-        current_val=$(cat "$PERF_PATH")
-        echo "  Current max_perf_pct: $current_val%"
-    elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
-        echo "  Current max frequencies:"
-        for path in "${PERF_PATHS[@]}"; do
-            cur_val=$(cat "$path")
-            policy_name=$(basename "$(dirname "$path")")
-            echo "  $policy_name: $((cur_val / 1000)) MHz"
-        done
-    else
-        echo "  ${RED}No performance paths found.${RESET}"
-    fi
-
+    if [[ -z "$2" ]]; then
+        if [[ "$IS_INTEL" -eq 1 || "$IS_AMD" -eq 1 ]] && [[ "$PERF_PATH" == *max_perf_pct ]]; then
+            current_val=$(cat "$PERF_PATH")
+            echo "  Current max_perf_pct: $current_val%"
+        elif [[ ${#PERF_PATHS[@]} -gt 0 ]]; then
+            echo "  Current max frequencies:"
+            for path in "${PERF_PATHS[@]}"; do
+                cur_val=$(cat "$path")
+                policy_name=$(basename "$(dirname "$path")")
+                echo "  $policy_name: $((cur_val / 1000)) MHz"
+            done
+        else
+            echo "  ${RED}No performance paths found.${RESET}"
+        fi
     else
         if ! [[ "$2" =~ ^[0-9]+$ ]]; then
             echo "${RED}Error: max_perf_pct value must be an integer.${RESET}"
@@ -623,6 +623,7 @@ max_perf_pct() {
         set_max_perf_pct "$MAX_PERF_PCT"
     fi
 }
+
 
 
 case "$1" in
